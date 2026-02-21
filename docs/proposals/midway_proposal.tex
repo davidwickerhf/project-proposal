@@ -66,7 +66,8 @@
 Steganographic Detectability?}\\[4pt]
 \large Midway Project Proposal\\[6pt]
 \normalsize\textit{Project 2.2, Department of Advanced Computing Sciences}}
-\author{Nico \quad Nikolas \quad Abdul \quad Daria \quad Jimena \quad David\\[2pt]
+\author{Abdul Moiz Akbar \quad Malo Coquin \quad Daria Gjonbalaj \quad Nico Müller-Späth\\[2pt]
+Jimena Naravaez del Cid \quad David Wicker \quad Nikolas Zouros\\[2pt]
 \small Maastricht University \quad$\cdot$\quad February 2026}
 \date{}
 
@@ -101,13 +102,17 @@ We propose to fill this gap with a $2\!\times\!2\!\times\!3\!\times\!2$ factoria
 
 \begin{description}[font=\normalfont\bfseries,leftmargin=1em,style=nextline]
 
-\item[RQ1 (Carrier Origin Effect, Primary)] Within a 7-week study using 500 real and 500 ML-generated images embedded with identical LSB and DCT methods at three payload levels, does carrier origin produce a statistically significant difference ($\alpha\!=\!0.05$, Bonferroni-corrected) in steganalysis AUC, as measured by RS Analysis and SRM+FLD?
+\item[RQ1 (Carrier Origin Effect)] Does the origin of a carrier image (real photograph versus ML-generated) affect how easily hidden data can be detected?
+\\\textit{Specifically:} Within a 7-week study using 500 real and 500 ML-generated images embedded with identical LSB and DCT methods at three payload levels, does carrier origin produce a statistically significant difference ($\alpha\!=\!0.05$, Bonferroni-corrected) in steganalysis AUC, as measured by RS Analysis and SRM+FLD?
 
-\item[RQ2 (Payload Sensitivity)] Across Low, Medium, and High payload rates (${\approx}0.08$--$0.32$\,bpp), does the AUC gap between real and ML-generated carriers increase monotonically, and does this trend differ between LSB and DCT embedding (interaction effect in two-way ANOVA)?
+\item[RQ2 (Payload Sensitivity)] Does increasing the amount of hidden data widen the detectability gap between real and ML-generated carriers?
+\\\textit{Specifically:} Across Low (${\approx}0.08$\,bpp), Medium (${\approx}0.16$\,bpp), and High (${\approx}0.32$\,bpp) payload rates, does the AUC gap between real and ML-generated carriers increase monotonically, and does this trend differ between LSB and DCT embedding (interaction effect in two-way ANOVA)?
 
-\item[RQ3 (Embedding Method Interaction)] Does the embedding method (spatial LSB vs.\ frequency-domain DCT) interact significantly with carrier origin in determining detectability, as quantified by a two-way ANOVA F-statistic with Bonferroni correction applied across six tested hypotheses?
+\item[RQ3 (Embedding Method Interaction)] Does the choice of embedding method (spatial-domain LSB versus frequency-domain DCT) change how carrier origin influences detectability?
+\\\textit{Specifically:} Does the embedding method (spatial LSB vs.\ frequency-domain DCT) interact significantly with carrier origin in determining detectability, as quantified by a two-way ANOVA F-statistic with Bonferroni correction applied across six tested hypotheses?
 
-\item[RQ4 (Payload Encryption Effect)] When the embedded payload is pre-encrypted with AES-256-CBC before LSB or DCT embedding, does the steganalysis AUC change significantly compared to unencrypted embedding, and does this effect differ between carrier types (real vs.\ ML-generated)?
+\item[RQ4 (Payload Encryption Effect)] Does encrypting the hidden payload before embedding make steganography harder or easier to detect?
+\\\textit{Specifically:} When the embedded payload is pre-encrypted with AES-256-CBC before LSB or DCT embedding, does the steganalysis AUC change significantly compared to unencrypted embedding, and does this effect differ between carrier types (real vs.\ ML-generated)?
 
 \end{description}
 
