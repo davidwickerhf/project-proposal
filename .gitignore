@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.toc
+
+# Data files (too large for git)
+data/covers/**/*.png
+data/stego/**/*.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/

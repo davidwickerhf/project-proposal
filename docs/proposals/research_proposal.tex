@@ -1,0 +1,327 @@
+\documentclass[10pt,twocolumn,a4paper]{article}
+
+% ---- Packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[top=1.8cm,bottom=1.8cm,left=1.5cm,right=1.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{url}
+\usepackage{caption}
+
+% ---- Formatting ----
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
+\setlength{\columnsep}{0.6cm}
+\setlength{\parskip}{2pt plus 1pt}
+\setlength{\parindent}{0.8em}
+
+% Compact sections
+\titleformat{\section}{\normalfont\bfseries\normalsize}{\thesection.}{0.4em}{}
+\titleformat{\subsection}{\normalfont\bfseries\small}{\thesubsection}{0.4em}{}
+\titlespacing*{\section}{0pt}{8pt plus 2pt}{3pt plus 1pt}
+\titlespacing*{\subsection}{0pt}{5pt plus 2pt}{2pt plus 1pt}
+
+% Compact lists
+\setlist{nosep,leftmargin=1.2em}
+
+% Caption formatting
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% ---- Header/Footer ----
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\small\thepage}
+
+% ---- Title ----
+\title{\vspace{-1.2cm}\textbf{Does the Source of Carrier Image Affect\\Steganographic Detectability?}\\[4pt]
+\large A Comparative Study of Real vs.\ ML-Generated\\Image Steganography\\[6pt]
+\normalsize\textit{Project Proposal --- Draft for Team Review}}
+\author{Nico, Nikolas, Abdul, Daria, Jimena, David\\[2pt]
+\small Department of Advanced Computing Sciences (DACS)\\
+\small Maastricht University \quad $\cdot$ \quad February 2026}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+\vspace{-0.6cm}
+
+% ============================================================
+\section{Introduction and Motivation}
+% ============================================================
+
+Image steganography---the practice of concealing secret data within digital images---has been studied extensively over the past two decades through techniques spanning Least Significant Bit (LSB) substitution in the spatial domain, Discrete Cosine Transform (DCT) embedding, DWT-based methods, and content-adaptive approaches~\cite{petitcolas1999,cheddad2010,hussain2018}. The security of these methods depends heavily on the statistical properties of the carrier image: embedding introduces subtle distributional shifts that steganalysis classifiers exploit for detection~\cite{fridrich2012srm}.
+
+Simultaneously, a revolution has occurred in image generation. Models such as Stable Diffusion~\cite{rombach2022sd}, StyleGAN3~\cite{karras2021sg3}, DALL-E~3, and Midjourney now produce images that are perceptually indistinguishable from real photographs. Each generative paradigm---latent diffusion, GAN-based adversarial training, transformer-based token prediction---imposes distinct statistical fingerprints on its output. These fingerprints are already exploited by image deepfake and forgery detectors~\cite{wang2020cnn,corvi2023diffusion}, but their interaction with steganographic embedding is \textbf{unexplored}.
+
+This gap is consequential. If ML-generated images prove harder to steganalyze, adversaries could exploit synthetic carriers to evade detection---a concern for law enforcement and digital forensics. Conversely, generative artifacts might make embedded content easier to detect. Some preliminary work~\cite{de2022ai} has begun examining AI-generated images as steganographic carriers, but no systematic, controlled study comparing real vs.\ ML-generated images under identical embedding conditions has been conducted. This proposal aims to fill that gap.
+
+% ============================================================
+\section{Research Questions}
+\label{sec:rq}
+% ============================================================
+
+\noindent\textbf{Primary Research Question (RQ):}
+
+\begin{quote}
+\textit{Does the source of the carrier image (real human-photographed vs.\ ML-generated) affect the detectability of image steganography when using identical embedding methods and payload sizes?}
+\end{quote}
+
+\noindent\textbf{Secondary Research Questions:}
+
+\begin{description}[font=\normalfont\bfseries,leftmargin=1em,style=nextline]
+\item[RQ1 (Payload Sensitivity)] How does payload size influence detectability across real and ML-generated images? Do the two carrier types diverge at different embedding rates?
+\item[RQ2 (Embedding Method)] Do spatial-domain (LSB) and frequency-domain (DCT) embedding behave differently depending on the carrier image's origin?
+\item[RQ3 (Encryption Effect)] Does encrypting the payload before embedding affect detectability, and does this interaction vary across carrier types?
+\item[RQ4 (Cross-Domain Generalization)] How well do steganalysis detectors trained on one domain (real or ML-generated images) generalize to the other?
+\end{description}
+
+% ============================================================
+\section{Background and Related Work}
+% ============================================================
+
+\subsection{Image Steganography Techniques}
+Image steganography methods fall into spatial-domain and frequency-domain categories. \textbf{LSB substitution} replaces the least significant bits of pixel channel values with message bits---high capacity but vulnerable to statistical attacks~\cite{fridrich2001lsb}. \textbf{DCT-based embedding} modifies discrete cosine transform coefficients of 8$\times$8 image blocks, mirroring JPEG-domain steganography (F5/JSteg)~\cite{provos2003f5}, using Quantization Index Modulation (QIM)~\cite{chen_wornell2001} for coefficient selection. Content-adaptive methods (WOW, HILL, S-UNIWARD) additionally minimize statistical distortion by targeting textured image regions.
+
+\subsection{Image Steganalysis}
+\textbf{Training-free statistical methods} exploit distributional properties introduced by embedding. The \textbf{chi-square attack}~\cite{westfeld1999chi} tests whether pixel value pairs $(2k, 2k{+}1)$ have equalised frequencies---the statistical signature of LSB substitution. \textbf{RS Analysis}~\cite{fridrich2001lsb} analyses pixel group regularity to estimate the embedding rate $\hat{p}$ analytically, requiring no training data and generalizing across image domains by construction.
+
+\textbf{Classical ML approaches} extract hand-crafted features and classify with statistical methods. Fridrich and Kodovsk\'{y}~\cite{fridrich2012srm} introduced the \textbf{Spatial Rich Model (SRM)}, which extracts high-pass residual co-occurrence features (${\sim}35{,}000$ dimensions) and classifies with an ensemble of Fisher Linear Discriminants---a strong CPU-only baseline that handles both LSB and DCT embedding. Deep learning approaches (CNN-based and residual network architectures) have since advanced steganalysis further~\cite{luo2024survey}, but fall outside the scope of this cryptography-focused study.
+
+\subsection{ML-Generated Images}
+Modern image generation has achieved remarkable quality across several paradigms. \textbf{Latent diffusion models:} Stable Diffusion~\cite{rombach2022sd} applies diffusion in a compressed latent space, producing highly photorealistic images from text prompts. \textbf{GAN-based models:} StyleGAN3~\cite{karras2021sg3} generates high-resolution images with well-characterized spectral artifacts---GAN fingerprints already exploited by deepfake detectors~\cite{wang2020cnn,corvi2023diffusion}. Each generative paradigm imposes distinct statistical signatures that may interact with steganographic embedding differently.
+
+\subsection{Steganography in AI-Generated Media}
+De et al.~\cite{de2022ai} investigated steganographic secret sharing via AI-generated photorealistic images, finding that minimum-entropy coupling can achieve statistically undetectable embedding. This is the closest work to our proposal, but does not systematically compare real vs.\ ML-generated images under controlled, identical embedding conditions---the gap our study directly addresses. Deepfake detection research confirms that ML-generated images have exploitable statistical differences from real photographs~\cite{wang2020cnn,corvi2023diffusion}, supporting our hypothesis that the domain boundary will affect steganalysis performance.
+
+\subsection{Cross-Domain Generalization}
+Cross-domain generalization is a well-documented challenge: steganalysis models trained on one domain suffer significant performance degradation when tested on another~\cite{fridrich2012srm}. The specific domain shift from real photographs to ML-generated images has not been studied in the steganalysis context---a gap our study directly addresses through conditions C, D, and E.
+
+% ============================================================
+\section{Experimental Design}
+% ============================================================
+
+\subsection{Overview}
+We employ a \textbf{$2 \times 2 \times 3 \times 2$ factorial design} with four factors: carrier source (real vs.\ ML-generated), embedding method (LSB vs.\ DCT), payload rate (three levels), and detector (RS Analysis vs.\ SRM). For each combination, we produce matched cover--stego pairs and evaluate detectability across five training--testing conditions.
+
+\subsection{Dataset Construction}
+
+\textbf{Real images.} We sample \textbf{500 images} from established photographic datasets: \textbf{RAISE}~\cite{raise2015} (250 images, high-quality RAW DSLR), \textbf{COCO}~\cite{coco2014} (150 images, natural photographs), and \textbf{Flickr30k} (100 images, diverse everyday scenes). All images normalized to 512$\times$512\,px, RGB, 8-bit, lossless PNG. A BRISQUE quality gate ($\leq$50) ensures perceptual consistency.
+
+\textbf{ML-generated images.} We generate a matched set of \textbf{500 images} using two representative models:
+\begin{itemize}
+\item \textbf{Stable Diffusion v2.1}~\cite{rombach2022sd}---latent diffusion, photorealistic text-to-image, run locally via \texttt{diffusers} (MPS).
+\item \textbf{StyleGAN3}~\cite{karras2021sg3}---alias-free GAN with well-characterized spectral artifacts.
+\end{itemize}
+Each model contributes 250 images. ML-generated images use the same semantic prompts as the real image content (e.g., ``a dog in a park'') and are normalized to identical format specifications. The 500+500 dataset improves statistical power for cross-domain experiments.
+
+\subsection{Embedding Methods and Payload Rates}
+
+\textbf{LSB substitution (spatial domain):} Replace the $k$ least significant bits of each 8-bit pixel channel value with pseudorandom message bits. Pixel selection uses a PRNG keyed by a shared secret, applied across all RGB channels.
+
+\textbf{DCT-based embedding (frequency domain):} Segment each channel into non-overlapping 8$\times$8 pixel blocks, compute the 2D DCT, and embed bits by quantizing selected mid-frequency coefficients using QIM~\cite{chen_wornell2001}. Optionally, the payload is pre-encrypted with AES-256-CBC (addressing RQ3).
+
+\begin{table}[h]
+\centering
+\caption{Payload rate levels for both embedding methods.}
+\label{tab:payload}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Level} & \textbf{LSB config} & \textbf{DCT config} \\
+\midrule
+Low    & $k\!=\!1$, 25\% pixels & 10\% coefficients \\
+Medium & $k\!=\!1$, 50\% pixels & 25\% coefficients \\
+High   & $k\!=\!2$, 50\% pixels & 50\% coefficients \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Steganalysis Detectors}
+We use two detectors chosen to stay within the scope of classical signal processing and statistics, avoiding deep learning:
+\begin{enumerate}
+\item \textbf{RS Analysis}~\cite{fridrich2001lsb}: A fully training-free statistical test. Analyses pixel group regularity to estimate the embedding rate $\hat{p}$ analytically. Requires no training data and generalizes across image domains by construction---any difference in detection rate between real and ML-generated images reflects only the carriers' statistical properties, not classifier bias.
+\item \textbf{SRM + FLD Ensemble}~\cite{fridrich2012srm}: Spatial Rich Model. Extracts high-pass residual co-occurrence features (${\sim}35{,}000$ dimensions) and classifies with an ensemble of Fisher Linear Discriminants---a classical statistical classifier, not a neural network. CPU-only. Included because it handles DCT-domain embedding better than training-free methods and its hand-crafted features are expected to generalize across the real/ML domain boundary.
+\end{enumerate}
+The chi-square attack~\cite{westfeld1999chi} is applied as a supplementary analytical check on LSB results. SRM is trained with 3-fold cross-validation; training-free detectors produce a continuous score directly.
+
+\subsection{Training--Testing Conditions}
+
+\begin{table}[h]
+\centering
+\caption{Cross-domain experimental conditions.}
+\label{tab:conditions}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+& \textbf{Train} & \textbf{Test} & \textbf{Purpose} \\
+\midrule
+A & Real   & Real   & Baseline \\
+B & ML-gen & ML-gen & Within-domain ML \\
+C & Real   & ML-gen & Real$\to$ML transfer \\
+D & ML-gen & Real   & ML$\to$Real transfer \\
+\midrule
+E & Mixed  & Both   & Domain-agnostic \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Metrics}
+\textbf{Detection:} ROC-AUC (primary), accuracy at optimal threshold (Youden's $J$), Equal Error Rate (EER), and FPR at 5\% FNR.
+\textbf{Image quality:} PSNR, SSIM, and FSIM.
+\textbf{Payload integrity:} Bit Error Rate (BER); target = 0 for lossless PNG.
+\textbf{Statistics:} Two-way ANOVA (carrier $\times$ method) with payload as covariate; Wilcoxon signed-rank tests for pairwise comparisons; Bonferroni correction; Cohen's $d$ effect sizes.
+
+% ============================================================
+\section{Hypotheses and Expected Results}
+% ============================================================
+
+\begin{description}[font=\normalfont\bfseries,style=nextline,leftmargin=0.5em]
+\item[H1 (Distributional Difference)] ML-generated images will exhibit different steganalysis detectability due to learned statistical regularities (GAN spectral peaks, diffusion noise patterns, smoother textures) that interact with embedding distortion differently than natural photographs.
+\item[H2 (Payload Divergence)] Detectability divergence between carrier types will increase with payload size; at low embedding rates, both may be similarly difficult to steganalyze.
+\item[H3 (Method Sensitivity)] DCT embedding will show greater sensitivity to carrier origin than LSB, because DCT coefficients are more directly shaped by the generative process.
+\item[H4 (Cross-Domain Drop)] Detectors will suffer 10--25\% AUC degradation in cross-domain conditions (C, D) versus within-domain (A, B), paralleling findings in image deepfake detection~\cite{wang2020cnn}.
+\item[H5 (Asymmetric Transfer)] Real$\to$ML transfer (C) will perform worse than ML$\to$Real (D), because ML images' distinctive statistical profile may mask or alter the embedding artifacts the detector learned from natural images.
+\item[H6 (Encryption Effect)] Payload encryption will not significantly affect detectability, since AES output is statistically similar to a pseudorandom bitstream. Any measurable difference would indicate payload structure contributes to detection.
+\end{description}
+
+% ============================================================
+\section{Timeline and Feasibility}
+% ============================================================
+
+The project spans \textbf{7 weeks} using team members' M4 Pro MacBooks for local model inference and CPU-based detection.
+
+\begin{table}[h]
+\centering
+\caption{Project timeline (7 weeks).}
+\label{tab:timeline}
+\small
+\begin{tabular}{@{}cl@{}}
+\toprule
+\textbf{Week} & \textbf{Activity} \\
+\midrule
+1     & Dataset collection (RAISE/COCO/Flickr30k); \\
+      & ML image generation (SD v2.1 + StyleGAN3) \\
+2     & LSB + DCT implementation; embedding at all \\
+      & payload rates $\pm$ AES-256; quality checks \\
+3--4  & RS Analysis + SRM detection (CPU); \\
+      & conditions A--E \\
+5     & Cross-domain experiments; statistical analysis \\
+6     & Paper writing, visualization, revision \\
+7     & Buffer / final revision / submission \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Feasibility notes.} Stable Diffusion runs locally via \texttt{diffusers} on MPS (approx.\ 3--5\,h for 250 images); StyleGAN3 via NVIDIA's PyTorch implementation (2--3\,h for 250 images). RS Analysis and chi-square attack require no training---seconds per image with NumPy. SRM + FLD ensemble (scikit-learn) runs in under 45 minutes total on CPU for 1,000 images. \textbf{Total detection compute is under 6 hours}, compared to days with neural network approaches. All tools are open-source.
+
+% ============================================================
+\section{Ethical Considerations}
+% ============================================================
+
+No human subjects are involved. Real image datasets (RAISE, COCO, Flickr30k) are publicly available under permissive research licenses. ML-generated images are produced using open-source models (Stable Diffusion) and publicly available architectures (StyleGAN3). Our contribution is analytical---we study detection of known steganographic techniques rather than developing new evasion methods. Dual-use implications (potential exploitation of ML-generated carriers) will be discussed explicitly in the paper.
+
+% ============================================================
+% References
+% ============================================================
+
+\bibliographystyle{plain}
+
+\begin{thebibliography}{20}
+\small
+
+\bibitem{petitcolas1999}
+F.~A.~P.~Petitcolas, R.~J.~Anderson, and M.~G.~Kuhn,
+``Information hiding---a survey,''
+\textit{Proc.\ IEEE}, vol.~87, no.~7, pp.~1062--1078, 1999.
+
+\bibitem{cheddad2010}
+A.~Cheddad, J.~Condell, K.~Curran, and P.~McKevitt,
+``Digital image steganography: Survey and analysis of current methods,''
+\textit{Signal Process.}, vol.~90, no.~3, pp.~727--752, 2010.
+
+\bibitem{hussain2018}
+M.~Hussain, A.~W.~A.~Wahab, Y.~I.~B.~Idris, A.~T.~S.~Ho, and K.~H.~Jung,
+``Image steganography in spatial domain: A survey,''
+\textit{Signal Process.: Image Commun.}, vol.~65, pp.~46--66, 2018.
+
+\bibitem{fridrich2012srm}
+J.~Fridrich and J.~Kodovsk\'{y},
+``Rich models for steganalysis of digital images,''
+\textit{IEEE Trans.\ Inf.\ Forensics Security}, vol.~7, no.~3, pp.~868--882, 2012.
+
+\bibitem{rombach2022sd}
+R.~Rombach, A.~Blattmann, D.~Lorenz, P.~Esser, and B.~Ommer,
+``High-resolution image synthesis with latent diffusion models,''
+in \textit{Proc.\ IEEE CVPR}, pp.~10684--10695, 2022.
+
+\bibitem{karras2021sg3}
+T.~Karras, M.~Laine, M.~Aittala, J.~Hellsten, J.~Lehtinen, and T.~Aila,
+``Alias-free generative adversarial networks,''
+in \textit{Proc.\ NeurIPS}, vol.~34, pp.~852--863, 2021.
+
+\bibitem{de2022ai}
+A.~De, W.~Kinzel, and I.~Kanter,
+``Steganographic secret sharing via AI-generated photorealistic images,''
+\textit{EURASIP J.\ Wireless Commun.\ Netw.}, art.~108, 2022.
+
+\bibitem{fridrich2001lsb}
+J.~Fridrich, M.~Goljan, and R.~Du,
+``Detecting LSB steganography in color and grayscale images,''
+\textit{IEEE Multimedia}, vol.~8, no.~4, pp.~22--28, 2001.
+
+\bibitem{westfeld1999chi}
+A.~Westfeld and A.~Pfitzmann,
+``Attacks on steganographic systems,''
+in \textit{Proc.\ 3rd Int.\ Workshop Information Hiding}, LNCS 1768, pp.~61--76, 1999.
+
+\bibitem{provos2003f5}
+N.~Provos and P.~Honeyman,
+``Hide and seek: An introduction to steganography,''
+\textit{IEEE Security Privacy}, vol.~1, no.~3, pp.~32--44, 2003.
+
+\bibitem{chen_wornell2001}
+B.~Chen and G.~W.~Wornell,
+``Quantization index modulation: A class of provably good methods for digital watermarking and information embedding,''
+\textit{IEEE Trans.\ Inf.\ Theory}, vol.~47, no.~4, pp.~1423--1443, 2001.
+
+\bibitem{wang2020cnn}
+S.~Y.~Wang, O.~Wang, R.~Zhang, A.~Owens, and A.~A.~Efros,
+``CNN-generated images are surprisingly easy to spot\ldots for now,''
+in \textit{Proc.\ IEEE CVPR}, pp.~8695--8704, 2020.
+
+\bibitem{corvi2023diffusion}
+R.~Corvi, D.~Cozzolino, G.~Zingarini, G.~Poggi, K.~Nagano, and L.~Verdoliva,
+``On the detection of synthetic images generated by diffusion models,''
+in \textit{Proc.\ IEEE ICASSP}, pp.~1--5, 2023.
+
+\bibitem{raise2015}
+D.-T.~Dang-Nguyen, C.~Pasquini, V.~Conotter, and G.~Boato,
+``RAISE: A raw images dataset for digital image forensics,''
+in \textit{Proc.\ ACM MMSys}, pp.~219--224, 2015.
+
+\bibitem{coco2014}
+T.-Y.~Lin, M.~Maire, S.~Belongie, J.~Hays, P.~Perona, D.~Ramanan,
+P.~Doll\'{a}r, and C.~L.~Zitnick,
+``Microsoft COCO: Common objects in context,''
+in \textit{Proc.\ ECCV}, LNCS 8693, pp.~740--755, 2014.
+
+\bibitem{luo2024survey}
+Y.~Luo et al.,
+``Deep learning for steganalysis of diverse data types: A review of methods, taxonomy, challenges and future directions,''
+\textit{Neurocomputing}, Elsevier, 2024.
+
+\end{thebibliography}
+
+\end{document}
