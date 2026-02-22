@@ -39,11 +39,28 @@ This project investigates whether the **origin of a carrier image** (real photog
 
 ### Repository Structure
 
+**Core midway deliverables**
+
+- [Midway proposal (LaTeX source)](docs/proposals/midway_proposal.tex)
+- [Midway proposal (PDF)](docs/proposals/midway_proposal.pdf)
+- [Midway proposal slides (LaTeX source)](docs/slides/midway_proposal_slides.tex)
+- [Midway proposal slides (PDF)](docs/slides/midway_proposal_slides.pdf)
+
 ```
-├── README.md                   ← This file: methodology & implementation plan
+├── README.md                   ← Project overview, proposal write-up, implementation plan
 ├── docs/
-│   ├── proposals/              ← Research & midway proposals (LaTeX + PDF)
-│   ├── slides/                 ← Presentation slides (LaTeX + PDF)
+│   ├── proposals/              ← Proposal documents
+│   │   ├── midway_proposal.tex
+│   │   ├── midway_proposal.pdf
+│   │   ├── research_proposal.tex
+│   │   └── research_proposal.pdf
+│   ├── slides/                 ← Slide decks
+│   │   ├── midway_proposal_slides.tex
+│   │   ├── midway_proposal_slides.pdf
+│   │   ├── presentation_slides.tex
+│   │   ├── presentation_slides.pdf
+│   │   ├── implementation_slides.tex
+│   │   └── implementation_slides.pdf
 │   └── references/             ← Reference review notes
 ├── src/
 │   ├── data/                   ← Dataset construction scripts
