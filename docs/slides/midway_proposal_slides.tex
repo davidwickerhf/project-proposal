@@ -229,6 +229,35 @@ Primary metric is ROC-AUC with Bonferroni-adjusted alpha (0.05/6 = 0.0083), plus
 \end{exampleblock}
 \end{frame}
 
+\begin{frame}{Hypotheses: Prior Literature Support}
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{0.55cm}p{5.45cm}p{6.05cm}@{}}
+\toprule
+\textbf{H} & \textbf{Claim} & \textbf{Supporting reference(s)} \\
+\midrule
+H1 & Carrier origin affects AUC measured by RS Analysis &
+  Fridrich et al.\ (2001); Wang et al.\ (2020); Corvi et al.\ (2023) \\
+H2 & Carrier origin affects AUC measured by SRM+FLD &
+  Fridrich \& Kodovský (2012); Wang et al.\ (2020); Corvi et al.\ (2023) \\
+H3 & Real-vs-ML AUC gap grows monotonically with payload &
+  Fridrich et al.\ (2001); Hussain et al.\ (2018); Westfeld \& Pfitzmann (1999) \\
+H4 & Embedding method interacts with carrier origin on AUC &
+  Chen \& Wornell (2001); Hussain et al.\ (2018); Holub et al.\ (2014) \\
+H5 & AES-256 encryption significantly changes steganalysis AUC &
+  Westfeld \& Pfitzmann (1999); Fridrich et al.\ (2001); Petitcolas et al.\ (1999) \\
+H6 & Encryption effect interacts with carrier type (real vs.\ ML) &
+  Wang et al.\ (2020); Corvi et al.\ (2023); De et al.\ (2022) \\
+\bottomrule
+\end{tabular}
+\vspace{0.15cm}
+\begin{exampleblock}{\small Why six hypotheses?}
+\small
+H1/H2 split RQ1 by detector; H5/H6 split RQ4 into main effect vs.\ interaction.
+Six tests set the Bonferroni threshold: $\alpha_{\text{adj}} = 0.05/6 \approx 0.0083$.
+\end{exampleblock}
+\end{frame}
+
 % ============================================================
 \section{Chosen Approaches}
 % ============================================================
