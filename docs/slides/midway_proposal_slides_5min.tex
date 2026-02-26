@@ -110,6 +110,7 @@
 \item Motivation and problem statement
 \item State of the art and research gap
 \item Research questions
+\item Hypotheses and literature support
 \item Study design and methods
 \item Experiment and evaluation plan
 \item Prototype status
@@ -170,23 +171,24 @@ Is there any effect of carrier-image origin (real vs.\ ML-generated) on detectab
 \begin{block}{RQ2 (Payload)}
 Does increasing payload size widen the detectability gap between real and ML-generated carriers?
 \end{block}
+\end{column}
+\begin{column}{0.49\textwidth}
 \begin{block}{RQ3 (Encryption)}
 Does encrypting payload before embedding make steganography harder or easier to detect, and does origin change this effect?
 \end{block}
-\end{column}
-\begin{column}{0.49\textwidth}
 \begin{block}{RQ4 (Embedding Method)}
 Do different embedding methods (spatial LSB vs.\ frequency-domain DCT) interact differently with carrier origin in terms of detectability?
 \end{block}
-\begin{block}{RQ5 (Image Quality)}
-Is image quality affected by embedding method and payload size?
-\end{block}
 \end{column}
 \end{columns}
+\vspace{0.08cm}
+\begin{exampleblock}{RQ5 (Additional consideration)}
+How is image quality (PSNR/SSIM/FSIM) affected by embedding method, payload size, and carrier source?
+\end{exampleblock}
 \end{frame}
 
 % ============================================================
-% 6. Chosen Approaches I (content 5/10)
+% 7. Chosen Approaches I (content 6/10)
 % ============================================================
 \section{Chosen Approaches}
 \begin{frame}{Chosen Approaches: Data and Design}
@@ -216,7 +218,7 @@ Is image quality affected by embedding method and payload size?
 \end{frame}
 
 % ============================================================
-% 7. Chosen Approaches II (content 6/10)
+% 8. Chosen Approaches II (content 7/10)
 % ============================================================
 \begin{frame}{Chosen Approaches: Methods and Validation}
 \small
@@ -244,7 +246,7 @@ Is image quality affected by embedding method and payload size?
 \end{frame}
 
 % ============================================================
-% 8. Experiments (content 7/10)
+% 9. Experiments (content 8/10)
 % ============================================================
 \section{Experiments}
 \begin{frame}{Experiment and Evaluation Plan}
@@ -268,7 +270,7 @@ We evaluate performance primarily with ROC-AUC and report uncertainty and effect
 \end{frame}
 
 % ============================================================
-% 9. Prototype (content 8/10)
+% 10. Prototype (content 9/10)
 % ============================================================
 \section{Prototype}
 \begin{frame}{Prototype Status}
@@ -298,7 +300,7 @@ We evaluate performance primarily with ROC-AUC and report uncertainty and effect
 \end{frame}
 
 % ============================================================
-% 10. Positioning (content 9/10)
+% 11. Positioning (content 10/10)
 % ============================================================
 \section{Positioning and Contribution}
 \begin{frame}{Research Positioning and Expected Contribution}
@@ -326,7 +328,7 @@ We evaluate performance primarily with ROC-AUC and report uncertainty and effect
 \end{frame}
 
 % ============================================================
-% 11. Passing Requirements (content 10/10)
+% 12. Passing Requirements (content 11/10)
 % ============================================================
 \section{Minimum Deliverable}
 \begin{frame}{Minimum Deliverable Threshold}
@@ -348,7 +350,7 @@ At minimum, answer:
 \end{frame}
 
 % ============================================================
-% 12. Closing
+% 13. Closing
 % ============================================================
 \begin{frame}[plain]
 \vfill
