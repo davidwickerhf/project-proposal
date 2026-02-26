@@ -3,7 +3,7 @@
 > A comparative study of real vs. ML-generated image steganography
 
 **Course:** Project 2.2, Department of Advanced Computing Sciences, Maastricht University
-**Team:** Abdul Moiz Akbar, Malo Coquin, Daria Gjonbalaj, Nico Müller-Späth, Jimena Naravaez del Cid, David Wicker, Nikolas Zouros
+**Team:** Abdul Moiz Akbar, Malo Coquin, Daria Gjonbalaj, Nico Müller-Späth, Jimena Narvaez del Cid, David Wicker, Nikolas Zouros
 **Date:** February 2026
 
 ## Table of Contents

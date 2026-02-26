@@ -30,6 +30,7 @@
 \definecolor{umgray}{HTML}{6B7280}
 \definecolor{umbg}{HTML}{F8F9FA}
 \definecolor{umfaint}{HTML}{E5E7EB}
+\newcommand{\icite}[1]{{\footnotesize\color{umgray!85}#1}}
 
 % ---- Apply colors to Beamer ----
 \setbeamercolor{normal text}{fg=umdark}
@@ -78,7 +79,7 @@
 % ---- Metadata ----
 \title{Does the Source of Carrier Image Affect\\Steganographic Detectability?}
 \subtitle{Full Midway Proposal}
-\newcommand{\teamauthors}{Abdul Moiz Akbar \;|\; Malo Coquin \;|\; Daria Gjonbalaj \;|\; Nico Muller-Spath\\Jimena Naravaez del Cid \;|\; David Wicker \;|\; Nikolas Zouros}
+\newcommand{\teamauthors}{Abdul Moiz Akbar \;|\; Malo Coquin \;|\; Daria Gjonbalaj \;|\; Nico Muller-Spath\\Jimena Narvaez del Cid \;|\; David Wicker \;|\; Nikolas Zouros}
 \author[Project 2.2 Team]{Project 2.2 Team}
 \institute{Department of Advanced Computing Sciences\\Maastricht University}
 \date{Project 2.2 \;|\; February 2026}
@@ -108,7 +109,7 @@
 \begin{column}{0.47\textwidth}
 \begin{enumerate}
 \item Motivation and problem statement
-\item Research questions and hypotheses
+\item Research questions and verification
 \item Chosen approaches
 \item Experiments and validation
 \end{enumerate}
@@ -133,10 +134,10 @@
 \begin{column}{0.56\textwidth}
 \small
 \begin{itemize}
-\item Image steganography detectability depends on carrier statistics, not only embedding logic (Petitcolas et al., 1999; Cheddad et al., 2010; Fridrich \& Kodovsky, 2012).
+\item Image steganography detectability depends on carrier statistics, not only embedding logic \icite{(Petitcolas et al., 1999; Cheddad et al., 2010; Fridrich \& Kodovsky, 2012).}
 \item Most steganalysis benchmarks assume camera photos with familiar noise/compression traces.
-\item Modern generators (Stable Diffusion, StyleGAN3) produce photorealistic images from different processes (Rombach et al., 2022; Karras et al., 2021).
-\item Synthetic images have measurable statistical fingerprints that may alter detector behavior (Wang et al., 2020; Corvi et al., 2023).
+\item Modern generators (Stable Diffusion, StyleGAN3) produce photorealistic images from different processes \icite{(Rombach et al., 2022; Karras et al., 2021).}
+\item Synthetic images have measurable statistical fingerprints that may alter detector behavior \icite{(Wang et al., 2020; Corvi et al., 2023).}
 \end{itemize}
 \end{column}
 \begin{column}{0.40\textwidth}
@@ -147,7 +148,7 @@ Do steganalysis methods designed and validated on photographs remain effective w
 
 \begin{block}{Closest prior work}
 \small
-De et al. (2022) show AI-generated image steganography, but not a controlled real-vs-ML comparison with standardized LSB/DCT detectors.
+\icite{De et al. (2022)} show AI-generated image steganography, but not a controlled real-vs-ML comparison with standardized LSB/DCT detectors.
 \end{block}
 \end{column}
 \end{columns}
@@ -191,41 +192,48 @@ De et al. (2022) show AI-generated image steganography, but not a controlled rea
 \section{Research Questions}
 % ============================================================
 \begin{frame}{Research Questions}
-\small
-\begin{block}{RQ1: Carrier origin effect}
-Does carrier origin (real vs ML-generated) change detectability under identical embedding settings?
+\scriptsize
+\begin{columns}[T]
+\begin{column}{0.49\textwidth}
+\begin{block}{RQ1: Carrier origin}
+Does carrier-image origin (real vs ML-generated) affect detectability under identical settings?
 \end{block}
-
-\begin{block}{RQ2: Payload sensitivity}
-Does increasing payload size change the real-vs-ML detectability gap?
+\begin{block}{RQ2: Payload}
+Does increasing payload size widen the real-vs-ML detectability gap?
 \end{block}
-
-\begin{block}{RQ3: Embedding-method interaction}
-Does method choice (LSB vs DCT) change how carrier origin influences detectability?
+\begin{block}{RQ3: Encryption}
+Does encrypting payload before embedding change detectability, and does origin modify that effect?
 \end{block}
-
-\begin{block}{RQ4: Encryption effect}
-Does AES-256-CBC payload encryption change detectability, and does this differ by carrier type?
+\end{column}
+\begin{column}{0.49\textwidth}
+\begin{block}{RQ4: Embedding method}
+Do LSB and DCT interact differently with carrier origin in terms of detectability?
 \end{block}
+\begin{block}{RQ5: Image quality}
+How are PSNR/SSIM/FSIM affected by embedding method and payload size?
+\end{block}
+\end{column}
+\end{columns}
 \end{frame}
 
-\begin{frame}{Hypotheses and Decision Criteria}
-\small
+\begin{frame}{Verification Criteria by RQ}
+\scriptsize
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}p{1.3cm}p{6.9cm}p{4.4cm}@{}}
+\begin{tabular}{@{}p{0.9cm}p{7.4cm}p{4.2cm}@{}}
 \toprule
-\textbf{H} & \textbf{Claim} & \textbf{Primary test} \\
+\textbf{RQ} & \textbf{Verification target} & \textbf{Primary analysis} \\
 \midrule
-H1 & Carrier origin affects steganalysis AUC. & Wilcoxon + effect size \\
-H2 & Real-vs-ML AUC gap increases with payload. & Spearman trend + ANOVA interaction \\
-H3 & Carrier origin effect depends on embedding method. & Two-way ANOVA interaction \\
-H4 & Encryption changes AUC and may interact with origin. & Wilcoxon by condition + interaction check \\
+RQ1 & Real-vs-ML AUC difference with fixed settings. & RS and SRM+FLD + significance/effect size \\
+RQ2 & AUC-gap trend across Low/Medium/High payload. & Trend test + carrier$\times$payload interaction \\
+RQ3 & Plain vs AES-256-CBC detectability difference. & Condition-wise AUC comparisons by method and origin \\
+RQ4 & Carrier-origin dependence on LSB vs DCT. & Two-way ANOVA interaction term \\
+RQ5 & Quality stability across conditions. & PSNR/SSIM/FSIM against target thresholds \\
 \bottomrule
 \end{tabular}
 \vspace{0.2cm}
 \begin{exampleblock}{Common statistical settings}
 \small
-Primary metric is ROC-AUC with Bonferroni-adjusted alpha (0.05/6 = 0.0083), plus 95\% confidence intervals and Cohen's d.
+We evaluate performance primarily with ROC-AUC and report uncertainty and effect size alongside significance, using a stricter threshold to account for multiple comparisons.
 \end{exampleblock}
 \end{frame}
 
@@ -304,7 +312,7 @@ Carrier origin is treated as the central independent variable; image size/format
 \item Flickr30k: 100 images
 \end{itemize}
 \vspace{0.1cm}
-Sources: Dang-Nguyen et al. (2015), Lin et al. (2014), Young et al. (2014)
+\icite{Sources: Dang-Nguyen et al. (2015), Lin et al. (2014), Young et al. (2014)}
 \end{block}
 \end{column}
 \begin{column}{0.48\textwidth}
@@ -315,7 +323,7 @@ Sources: Dang-Nguyen et al. (2015), Lin et al. (2014), Young et al. (2014)
 \item Prompts aligned to COCO/Flickr semantics
 \end{itemize}
 \vspace{0.1cm}
-Sources: Rombach et al. (2022), Karras et al. (2021)
+\icite{Sources: Rombach et al. (2022), Karras et al. (2021)}
 \end{block}
 \end{column}
 \end{columns}
@@ -405,7 +413,7 @@ It isolates whether message-bit structure contributes to detectability beyond ca
 \item \textbf{\(\chi^2\) attack} as supplementary LSB check
 \end{itemize}
 \vspace{0.05cm}
-References: Fridrich et al. (2001), Westfeld and Pfitzmann (1999), Fridrich and Kodovsky (2012)
+\icite{References: Fridrich et al. (2001), Westfeld and Pfitzmann (1999), Fridrich and Kodovsky (2012)}
 \end{block}
 \end{column}
 \begin{column}{0.46\textwidth}
@@ -451,17 +459,27 @@ Two-way ANOVA (carrier x method; payload covariate), Wilcoxon pairwise tests, ef
 
 \begin{frame}{Experiment Plan II (RQ3 and RQ4)}
 \small
-\begin{block}{Exp. 3 -- Method interaction (RQ3)}
+\begin{block}{Exp. 3 -- Encryption effect (RQ3)}
+\begin{itemize}
+\item Compare plain vs AES-encrypted payload AUC per carrier and method.
+\item Test whether encryption effect differs by carrier origin.
+\end{itemize}
+\end{block}
+
+\begin{block}{Exp. 4 -- Method interaction (RQ4)}
 \begin{itemize}
 \item Run two-way ANOVA on SRM AUC with carrier origin and method factors.
 \item Confirm whether the detectability gap depends on LSB vs DCT.
 \end{itemize}
 \end{block}
+\end{frame}
 
-\begin{block}{Exp. 4 -- Encryption effect (RQ4)}
+\begin{frame}{Experiment Plan III (RQ5)}
+\small
+\begin{block}{Exp. 5 -- Image quality (RQ5)}
 \begin{itemize}
-\item Compare plain vs AES-encrypted payload AUC per carrier and method.
-\item Test whether encryption effect differs by carrier origin.
+\item Compute PSNR, SSIM, and FSIM for each stego condition versus cover.
+\item Check whether quality remains within target ranges across methods and payload levels.
 \end{itemize}
 \end{block}
 
@@ -477,31 +495,31 @@ Null findings remain valid outcomes; all major results reported with confidence 
 \begin{frame}{Prototype Status}
 \begin{columns}[T]
 \begin{column}{0.49\textwidth}
-\begin{block}{Vertical prototype (depth)}
+\begin{block}{Vertical prototype (algorithm depth)}
 \small
-Isolated implementation and verification of:
+Core components validated on a small test subset:
 \begin{itemize}
-\item LSB embed/extract (BER = 0 on test set)
-\item DCT-QIM embed/extract (lossless payload recovery)
-\item RS Analysis sanity checks vs expected behavior
-\item SRM feature extraction + baseline classifier
+\item LSB embedding/extraction
+\item DCT-QIM embedding
+\item RS Analysis
+\item SRM feature extraction/classification
 \end{itemize}
 \end{block}
 \end{column}
 \begin{column}{0.49\textwidth}
-\begin{block}{Horizontal prototype (breadth)}
+\begin{block}{Horizontal prototype (integration breadth)}
 \small
-Integrated end-to-end run on 50 images:
+Integrated end-to-end run on a mixed 50-image subset:
 \begin{itemize}
 \item 25 real + 25 ML-generated
-\item Medium LSB payload condition
-\item Pipeline interfaces validated before full scale
+\item Medium payload setting
+\item Interface and output checks before full 1,000-image run
 \end{itemize}
 \end{block}
 \end{column}
 \end{columns}
 \vspace{0.15cm}
-{\small\color{umgray}\textbf{Readiness:} Vertical and horizontal checks reduce implementation risk before full 1,000-image execution.}
+{\small\color{umgray}\textbf{Readiness:} Prototype checks reduce integration risk before full-scale execution.}
 \end{frame}
 
 % ============================================================
@@ -509,16 +527,16 @@ Integrated end-to-end run on 50 images:
 % ============================================================
 \begin{frame}{Related Work Landscape}
 \small
-\begin{block}{Generative steganography}
-Prior work often embeds messages during generation itself, including GAN and diffusion pipelines (Hu et al., 2023; Liu et al., 2024; Duan et al., 2020).
+\begin{block}{Classical embedding and detection foundations}
+Prior literature centers on post-hoc embedding in photographic carriers (LSB and DCT-QIM) and classical detection baselines (RS, $\chi^2$, SRM).
 \end{block}
 
-\begin{block}{AI-generated carriers}
-De et al. (2022) show feasibility with bespoke probabilistic coupling, but without controlled real-vs-ML detectability comparisons.
+\begin{block}{Generative and coverless steganography}
+Recent approaches embed during generation or by content selection/generation rather than post-hoc modification. Our design instead uses ML-generated images as passive carriers.
 \end{block}
 
-\begin{block}{Cross-domain and synthetic-image forensics}
-Existing studies cover camera-domain shifts and real-vs-synthetic discrimination (Wang et al., 2020; Corvi et al., 2023), but not payload detectability across carrier origin.
+\begin{block}{Closest prior work}
+\icite{De et al. (2022)} demonstrates AI-generated-image secret sharing, but not a controlled real-vs-ML comparison under identical LSB/DCT pipelines with ROC-AUC detectability endpoints.
 \end{block}
 \end{frame}
 
@@ -526,27 +544,26 @@ Existing studies cover camera-domain shifts and real-vs-synthetic discrimination
 \small
 \begin{columns}[T]
 \begin{column}{0.49\textwidth}
-\begin{block}{What this proposal adds}
+\begin{block}{Cross-domain and synthetic-image forensics}
 \begin{itemize}
-\item Controlled real-vs-ML carrier comparison
-\item Standardized LSB and DCT embedding
-\item Explicit steganalysis outcome reporting
-\item Payload and encryption interaction analysis
+\item Camera-domain shifts have been studied in steganalysis.
+\item Real-vs-synthetic shifts are broader because generation processes differ.
+\item Synthetic-image forensics reports distinct traces in generated images.
 \end{itemize}
 \end{block}
 \end{column}
 \begin{column}{0.49\textwidth}
-\begin{block}{Methodological choice}
+\begin{block}{Classical vs deep steganalysis}
 \begin{itemize}
-\item Classical SRM+FLD over deep detectors
-\item Better interpretability for cross-domain behavior
-\item Feasible CPU runtime for full study scale
+\item Deep methods can achieve strong accuracy.
+\item Classical SRM+FLD + RS chosen for interpretability and CPU feasibility.
+\item Matches cryptography/steganography project scope.
 \end{itemize}
-\vspace{0.05cm}
-References: Fridrich and Kodovsky (2012), Luo et al. (2024)
 \end{block}
 \end{column}
 \end{columns}
+\vspace{0.1cm}
+{\small\color{umgray}\textbf{Positioning:} Controlled evaluation of how carrier origin changes detectability under matched embedding conditions.}
 \end{frame}
 
 % ============================================================
@@ -579,41 +596,32 @@ Block-wise transforms, coefficient-level embedding logic, and reproducible exper
 \end{columns}
 \end{frame}
 
-\begin{frame}{Planning and Milestones}
-\small
+\begin{frame}{Planning}
+\scriptsize
 \begin{columns}[T]
 \begin{column}{0.49\textwidth}
 \begin{block}{Phase windows}
 \begin{itemize}
-\item \textbf{Phase 2:} 30 Mar -- 15 May 2026
-\item \textbf{Phase 3:} 25 May -- 12 Jun 2026
+\item \textbf{Phase 2 (Implementation):} 30 Mar -- 15 May 2026
+\item \textbf{Phase 3 (Completion):} 25 May -- 12 Jun 2026
 \end{itemize}
 \end{block}
 
-\begin{alertblock}{Milestones}
-\small
+\begin{alertblock}{Phase 2 workstreams}
 \begin{itemize}
-\item M1 (end Wk2): dataset ready
-\item M2 (end Wk3): embedding pipelines verified
-\item M3 (end Wk5): experiments complete
-\item M4 (end Wk7): report submitted
+\item Dataset construction and ML generation (Weeks 1--2)
+\item LSB/DCT/AES pipeline implementation (Weeks 2--3)
+\item Detection, analysis, and writing (Weeks 3--7)
 \end{itemize}
 \end{alertblock}
 \end{column}
 \begin{column}{0.49\textwidth}
-\begin{block}{Planned outputs}
-\small
+\begin{block}{Phase 3 completion focus}
 \begin{itemize}
-\item Curated real and ML-generated datasets
-\item Verified LSB/DCT + AES pipelines
-\item Detector runs and statistical analysis
-\item Final deliverables: slides, poster, paper
+\item Finish remaining implementation
+\item Verify and rerun experiments
+\item Finalize slides, poster, and paper deliverables
 \end{itemize}
-\end{block}
-
-\begin{block}{Execution strategy}
-\small
-Parallel workstreams for data, embedding, and analysis with fixed scope after Week 2 to protect timeline and avoid design drift.
 \end{block}
 \end{column}
 \end{columns}
@@ -625,24 +633,22 @@ Parallel workstreams for data, embedding, and analysis with fixed scope after We
 \begin{frame}{Minimal Passing Requirements}
 \begin{columns}[T]
 \begin{column}{0.49\textwidth}
-\begin{block}{Product minimum}
+\begin{block}{Approach minimum}
 \small
 \begin{itemize}
-\item Functional LSB and DCT pipelines
-\item Plain and AES-encrypted payload modes
-\item RS and SRM+FLD evaluated on all 1,000 images
-\item Full condition coverage for carrier/method/payload
+\item One encryption algorithm
+\item Two embedding methods total
+\item One spatial-domain and one frequency-domain method
 \end{itemize}
 \end{block}
 \end{column}
 \begin{column}{0.49\textwidth}
-\begin{block}{Validation minimum}
+\begin{block}{RQ minimum}
 \small
 \begin{itemize}
-\item RQ1 and RQ4 answered with AUC-based significance tests
-\item 95\% confidence intervals reported
-\item Effect sizes reported for practical significance
-\item Null results interpreted explicitly
+\item At minimum, answer:
+\item \textbf{RQ3 (Encryption)}
+\item \textbf{RQ4 (Embedding-method interaction)}
 \end{itemize}
 \end{block}
 \end{column}
@@ -650,7 +656,7 @@ Parallel workstreams for data, embedding, and analysis with fixed scope after We
 \vspace{0.2cm}
 \begin{exampleblock}{Definition of done}
 \small
-Minimum deliverable is a reproducible, statistically transparent conclusion on carrier-origin and encryption effects, even if findings are null.
+Minimum deliverable is a reproducible result set satisfying the above approach and RQ thresholds.
 \end{exampleblock}
 \end{frame}
 
@@ -663,7 +669,7 @@ Minimum deliverable is a reproducible, statistically transparent conclusion on c
 {\color{umorange}\rule{0.32\textwidth}{2pt}}\\[14pt]
 {\LARGE\bfseries\color{umdark}Thank you}\\[10pt]
 {\large\color{umgray}Questions and Discussion}\\[16pt]
-{\small\color{umgray}Midway proposal document: \texttt{docs/proposals/midway\_proposal.tex}}\\[14pt]
+{\small\color{umgray}Midway proposal document: \texttt{docs/proposals/midway\_proposal\_final.tex}}\\[14pt]
 {\color{umorange}\rule{0.32\textwidth}{2pt}}
 \end{center}
 \vfill

@@ -23,6 +23,7 @@
 \usepackage{caption}
 \usepackage{tikz}
 \usepackage{calc}
+\usepackage{needspace}
 \usetikzlibrary{positioning,calc}
 
 % ---- Colors ----
@@ -80,21 +81,22 @@ Jimena Narvaez del Cid \quad David Wicker \quad Nikolas Zouros\\[2pt]
 \section{Motivation and Problem Statement}
 % ============================================================
 
-Image steganography (the practice of hiding secret information within digital images) is a fundamental topic in information security~\cite{petitcolas1999,cheddad2010}. The detectability of hidden content is not absolute: it depends critically on the \emph{statistical properties of the carrier image}. Steganalysis systems exploit the subtle distributional changes that embedding introduces into pixel values, and a well-chosen carrier that already exhibits high local variability can mask these changes~\cite{hussain2018,fridrich2012srm}. The implicit assumption underlying nearly all published steganalysis work is that carriers are \emph{real photographs}: images captured by digital cameras with well-characterized noise distributions, sensor patterns, and compression histories.
+Image steganography is an important topic in online security and privacy, with both beneficial and adversarial uses~\cite{petitcolas1999,cheddad2010,provos2003f5}. In practice, detectability depends not only on the embedding method but also on the underlying statistics of the carrier image~\cite{hussain2018,fridrich2012srm}. Steganalysis works by detecting subtle distributional perturbations in pixel values, residuals, and frequency coefficients after embedding. This is exactly why carrier selection matters: two carriers with identical payload and identical embedding can produce different detectability outcomes.
 
-This assumption is increasingly untenable. Generative AI models including Stable Diffusion~\cite{rombach2022sd}, StyleGAN3~\cite{karras2021sg3}, DALL-E~3, and Midjourney now produce images that are perceptually indistinguishable from real photographs, yet are synthesized through entirely different processes: latent diffusion over learned image manifolds, adversarial training against a discriminator, or transformer-based token prediction. Each process imposes a \emph{distinct statistical fingerprint} on the output: diffusion models produce characteristic noise residual patterns, GANs leave spectral artifacts at high frequencies, and all generative models operate within learned data distributions that differ from the empirical distribution of camera photographs~\cite{wang2020cnn,corvi2023diffusion}.
+Most existing steganalysis pipelines were developed and benchmarked on real camera photographs, where sensor noise and compression traces are relatively well characterized. This assumption is increasingly fragile. Photorealistic synthetic images from modern generators such as Stable Diffusion and StyleGAN3 are now widespread~\cite{rombach2022sd,karras2021sg3}, and they are produced by different mechanisms than camera pipelines. Prior synthetic-image forensics shows that generated images can contain distinct statistical traces~\cite{wang2020cnn,corvi2023diffusion}, which may directly influence steganographic detectability.
 
-The central problem this study addresses is: \textbf{do existing steganalysis methods, designed and validated on photographs, remain effective when the carrier image is ML-generated?} This question has three concrete implications:
-
+The core question is therefore: \textbf{do steganalysis detectors validated on photographs remain equally effective on ML-generated carriers under identical embedding settings?} This matters for three reasons:
 \begin{itemize}
-\item \textbf{Security:} If ML-generated images are harder to steganalyze, adversaries could trivially evade current detectors by switching to synthetic carriers, without changing the embedding algorithm at all.
-\item \textbf{Scientific:} The interaction between a generative model's learned data distribution and the distributional perturbation caused by steganographic embedding is theoretically unexplored. Understanding it requires controlled empirical study.
-\item \textbf{Practical:} As AI-generated images proliferate across social media and digital communications, the steganographic attack surface is silently expanding. Practitioners need evidence on whether existing tools require retraining or adaptation.
+\item \textbf{Security:} if ML-generated carriers are harder to detect, an attacker may evade existing detectors by changing carrier source only.
+\item \textbf{Scientific:} the interaction between generative-model distributions and embedding perturbations remains underexplored.
+\item \textbf{Practical:} as AI-generated images become common in communication channels, the steganographic attack surface expands.
 \end{itemize}
 
-Prior work most closely related to ours, De et al.~\cite{de2022ai}, showed that AI-generated images can achieve statistically undetectable steganographic embedding using minimum-entropy coupling. However, that study used a bespoke probabilistic embedding scheme and did not systematically compare standardized methods (LSB, DCT) across real vs.\ ML-generated carriers. No existing work provides a controlled comparison of carrier origin under identical embedding and steganalysis conditions.
+The problem statement for this project is to quantify whether \emph{carrier origin alone} (real vs.\ ML-generated) causes measurable detection differences when embedding, payload, and detector settings are fixed. If origin effects are large, detector calibration and risk assumptions built on photo-only datasets may not transfer to mixed real/synthetic traffic.
 
-We propose to fill this gap with a $2\!\times\!2\!\times\!3\!\times\!2$ factorial experiment: two carrier types (real photographs vs.\ ML-generated), two embedding methods (spatial LSB and frequency-domain DCT), three payload levels, and two steganalysis detectors (RS Analysis and SRM+FLD). The study uses 500 real and 500 ML-generated images and is designed to be completed within 7 weeks using only CPU-based open-source tools.
+The closest precedent is De et al.~\cite{de2022ai}, who demonstrate AI-generated images for steganographic secret sharing, but without a controlled real-vs-ML carrier comparison using standardized LSB/DCT pipelines and classical steganalysis endpoints. In other words, feasibility of secret sharing on generated images has been shown, but comparative detectability under matched conditions is still unclear.
+
+This study addresses that gap with a controlled $2\!\times\!2\!\times\!3\!\times\!2$ design over 1{,}000 images (500 real, 500 ML-generated), two embedding methods, three payload levels, and two primary detectors. By keeping embedding, payload, and detector settings fixed while varying carrier origin, we isolate whether origin itself is a meaningful source of detection-performance differences. Results will guide benchmarking and steganalysis policy in mixed real/synthetic environments.
 
 % ============================================================
 \section{Research Questions}
@@ -102,21 +104,25 @@ We propose to fill this gap with a $2\!\times\!2\!\times\!3\!\times\!2$ factoria
 
 \begin{description}[font=\normalfont\bfseries,leftmargin=1em,style=nextline]
 
-\item[RQ1 (Carrier Origin Effect)] Does the origin of a carrier image (real photograph versus ML-generated) affect how easily hidden data can be detected?
-\\\textit{Specifically:} Within a 7-week study using 500 real and 500 ML-generated images embedded with identical LSB and DCT methods at three payload levels, does carrier origin produce a statistically significant difference ($\alpha\!=\!0.05$, Bonferroni-corrected) in steganalysis AUC, as measured by RS Analysis and SRM+FLD?
+\item[RQ1 (Carrier Origin)] Is there any effect of carrier-image origin (real vs.\ ML-generated) on detectability of hidden data?
+\\\textcolor{umorange}{\textit{Verification:} Compare real vs.\ ML AUC with RS and SRM+FLD at identical settings; report significance and effect size.}
 
-\item[RQ2 (Payload Sensitivity)] Does increasing the amount of hidden data widen the detectability gap between real and ML-generated carriers?
-\\\textit{Specifically:} Across Low (${\approx}0.08$\,bpp), Medium (${\approx}0.16$\,bpp), and High (${\approx}0.32$\,bpp) payload rates, does the AUC gap between real and ML-generated carriers increase monotonically, and does this trend differ between LSB and DCT embedding (interaction effect in two-way ANOVA)?
+\item[RQ2 (Payload)] Does increasing payload size widen the detectability gap between real and ML-generated carriers?
+\\\textcolor{umorange}{\textit{Verification:} Measure AUC gap across Low/Medium/High payloads and test trend plus carrier$\times$payload interaction.}
 
-\item[RQ3 (Embedding Method Interaction)] Does the choice of embedding method (spatial-domain LSB versus frequency-domain DCT) change how carrier origin influences detectability?
-\\\textit{Specifically:} Does the embedding method (spatial LSB vs.\ frequency-domain DCT) interact significantly with carrier origin in determining detectability, as quantified by a two-way ANOVA F-statistic with Bonferroni correction applied across six tested hypotheses?
+\item[RQ3 (Encryption)] Does encrypting payload before embedding make steganography harder or easier to detect, and does origin change this effect?
+\\\textcolor{umorange}{\textit{Verification:} Compare plain vs.\ AES-256-CBC AUC by carrier and method; test significance of the difference.}
 
-\item[RQ4 (Payload Encryption Effect)] Does encrypting the hidden payload before embedding make steganography harder or easier to detect?
-\\\textit{Specifically:} When the embedded payload is pre-encrypted with AES-256-CBC before LSB or DCT embedding, does the steganalysis AUC change significantly compared to unencrypted embedding, and does this effect differ between carrier types (real vs.\ ML-generated)?
+\item[RQ4 (Embedding Method)] Do different embedding methods (spatial LSB vs.\ frequency-domain DCT) interact differently with carrier origin in terms of detectability?
+\\\textcolor{umorange}{\textit{Verification:} Run a two-way ANOVA on AUC for carrier origin and embedding method; inspect interaction term.}
+
+\item[RQ5 (Image Quality)] Is image quality affected by embedding method and payload size?
+\\\textcolor{umorange}{\textit{Verification:} Compare PSNR/SSIM/FSIM across conditions and check against quality targets (PSNR $>\!40$\,dB, SSIM $>\!0.95$).}
 
 \end{description}
 
 % ============================================================
+\Needspace{8\baselineskip}
 \section{Chosen Approaches}
 % ============================================================
 
@@ -132,13 +138,13 @@ These two generative paradigms (latent diffusion and GAN-based synthesis) repres
 
 We implement two canonical steganographic methods spanning the two principal domains:
 
-\textbf{LSB substitution (spatial domain)} replaces the $k$ least significant bits of each pixel channel value with pseudorandom message bits, using a PRNG-keyed pixel selection mask. We test $k\!=\!1$ (Low, Medium payload) and $k\!=\!2$ (High payload). Payloads are optionally pre-encrypted with AES-256-CBC before embedding, addressing RQ1's encryption sub-question.
+\textbf{LSB substitution (spatial domain)} replaces the $k$ least significant bits of each pixel channel value with pseudorandom message bits, using a PRNG-keyed pixel selection mask. We test $k\!=\!1$ (Low, Medium payload) and $k\!=\!2$ (High payload). Payloads are optionally pre-encrypted with AES-256-CBC before embedding, addressing RQ3.
 
 \textbf{DCT-based embedding (frequency domain)} partitions each image channel into non-overlapping 8$\times$8 blocks, computes the 2D DCT, and embeds bits into mid-frequency coefficients (zigzag positions 10--54) via \textbf{Quantization Index Modulation} (QIM)~\cite{chen_wornell2001}:
 \[
 C'_i = \Delta\cdot\operatorname{round}\!\left(\tfrac{C_i}{\Delta}\right) \pm \tfrac{\Delta}{4},
 \]
-where the sign encodes the message bit. DCT embedding is chosen alongside LSB to test whether frequency-domain methods are more sensitive to carrier origin (H3), since DCT coefficients reflect the generative model's learned spectral distribution directly.
+where the sign encodes the message bit. DCT embedding is chosen alongside LSB to test whether frequency-domain methods are more sensitive to carrier origin (RQ4), since DCT coefficients reflect the generative model's learned spectral distribution directly.
 
 \subsection{Steganalysis Detectors}
 
@@ -179,46 +185,51 @@ The $\chi^2$ attack~\cite{westfeld1999chi} is applied as a supplementary check o
 
 Each research question maps to exactly one experiment; every experiment links back to its RQ.
 
-\textbf{Exp.\,1 (RQ1: Carrier Origin Effect).} Apply RS Analysis and SRM+FLD to all 1{,}000 images embedded at all payload levels and methods. Compute AUC per carrier type (conditions A, B). Compare real vs.\ ML-generated AUC with Wilcoxon signed-rank test and Cohen's~$d$; apply Bonferroni correction. A significant difference (Bonferroni-corrected $p\!<\!0.0083$) with $|d|\!>\!0.2$ confirms H1.
+\textbf{Exp.\,1 (RQ1: Carrier Origin).} Apply RS Analysis and SRM+FLD to all 1{,}000 images across payload levels and methods. Compute AUC per carrier type and compare real vs.\ ML-generated performance with Wilcoxon signed-rank and Cohen's~$d$ (Bonferroni-corrected).
 
-\textbf{Exp.\,2 (RQ2: Payload Sensitivity).} From Exp.\,1 results, plot AUC vs.\ payload level (Low/Medium/High) separately for real and ML-generated carriers, with separate curves per embedding method. Test whether the real--ML AUC gap increases monotonically using Spearman's $\rho$ on the difference series; test the carrier $\times$ payload interaction in ANOVA.
+\textbf{Exp.\,2 (RQ2: Payload).} From Exp.\,1 results, plot AUC vs.\ payload level (Low/Medium/High) separately for real and ML-generated carriers, with separate curves per embedding method. Test whether the real--ML AUC gap increases monotonically using Spearman's $\rho$, and test carrier $\times$ payload interaction.
 
-\textbf{Exp.\,3 (RQ3: Method Interaction).} Run a $2\!\times\!2$ two-way ANOVA with factors carrier origin (real/ML) and embedding method (LSB/DCT) on SRM AUC scores. A significant interaction ($F$-test, Bonferroni-corrected) indicates the method's detectability gap depends on carrier origin, confirming H3.
+\textbf{Exp.\,3 (RQ3: Encryption).} For each carrier type and embedding method, compare AUC between plain-payload and AES-256-CBC-encrypted-payload conditions. Test whether encryption changes detectability and whether the effect differs by carrier origin.
 
-\textbf{Exp.\,4 (RQ4: Encryption Effect).} For each carrier type and embedding method, compare AUC scores between the plain-payload and AES-256-CBC-encrypted-payload conditions. AES encryption randomises the bit pattern of the message before embedding; if detector AUC drops significantly (Wilcoxon signed-rank, Bonferroni-corrected), this indicates that message structure contributes to detection beyond purely carrier-level embedding distortion. An interaction with carrier type (real vs.\ ML) would suggest that generative model statistics moderate the encryption benefit.
+\textbf{Exp.\,4 (RQ4: Embedding Method).} Run a $2\!\times\!2$ two-way ANOVA with factors carrier origin (real/ML) and embedding method (LSB/DCT) on SRM AUC scores. A significant interaction indicates method-dependent detectability differences across carrier origin.
+
+\textbf{Exp.\,5 (RQ5: Image Quality).} Compute PSNR, SSIM, and FSIM for each stego condition relative to its cover image. Compare quality metrics across payload levels and embedding methods, and confirm whether quality remains within target ranges.
 
 % ============================================================
+\Needspace{8\baselineskip}
 \section{Prototype}
 % ============================================================
 
-\textbf{Vertical prototype (algorithm depth):} Isolated implementation and verification of all four core algorithms: (1)~LSB embedding and extraction, verified by BER~$=\!0$ on a 25-image test set; (2)~DCT-QIM embedding, verified by lossless payload recovery; (3)~RS Analysis, validated against published estimates on known-cover images; (4)~SRM feature extraction, verified by reference AUC~$>\!0.70$ on a 25-cover/25-stego pair set.
+\textbf{Vertical prototype (algorithm depth):} We validate the core components separately before scaling: LSB embedding/extraction, DCT-QIM embedding, RS Analysis, and SRM feature extraction/classification on a small test subset.
 
-\textbf{Horizontal prototype (integration breadth):} The four verified algorithms connected into an end-to-end pipeline on a 50-image subset (25~real~+~25~ML) at medium LSB payload, validating inter-component interfaces before scaling to the full 1{,}000-image experiment.
+\textbf{Horizontal prototype (integration breadth):} We then run an integrated pipeline on a mixed 50-image subset (25~real~+~25~ML) at medium payload to validate interfaces and outputs before executing the full 1{,}000-image study.
 
 % ============================================================
 \section{Related Work}
 % ============================================================
 
-\subsection{Generative Steganography}
-Hu et al.~\cite{hu2023} and Liu et al.~\cite{liu2024} use GANs and diffusion models \emph{as the embedding mechanism itself}, synthesising images that inherently encode a message without any post-hoc modification. Duan et al.~\cite{duan2020} developed coverless steganography that generates stego-images from scratch. Our work is fundamentally different: we use ML-generated images purely as \emph{passive carriers} for standard LSB/DCT embedding, without modifying the generation process. The research question of how the carrier's statistical origin affects detectability is orthogonal to generative embedding.
+\subsection{Classical Embedding and Detection Foundations}
+Image steganography has predominantly focused on embedding secret data into photographic carriers using spatial- and frequency-domain techniques~\cite{petitcolas1999,cheddad2010,hussain2018}. Canonical examples include LSB substitution, which perturbs pixel intensities directly, and DCT-based Quantization Index Modulation (QIM), which embeds information in transform coefficients~\cite{chen_wornell2001}. We adopt these established post-hoc embedding strategies rather than introducing a new embedding algorithm, to preserve comparability with prior steganalysis literature and isolate the effect of carrier origin.
 
-\subsection{AI-Generated Images as Carriers}
-De et al.~\cite{de2022ai} is the closest prior work, demonstrating steganographic secret sharing via AI-generated photorealistic images using minimum-entropy coupling. However, three key differences distinguish our study: (1) De et al.\ use a bespoke probabilistic embedding scheme rather than standard LSB/DCT; (2) they do not compare real vs.\ ML-generated carriers side-by-side under controlled conditions; and (3) they do not evaluate steganalysis detection rates. Our study directly fills these gaps with a factorial design that isolates carrier origin as the independent variable.
+On the detection side, RS analysis and the $\chi^2$ attack provide analytical baselines for LSB-like embedding~\cite{fridrich2001lsb,westfeld1999chi}. Rich-model approaches remain strong classical baselines: Fridrich and Kodovsk\'{y}~\cite{fridrich2012srm} introduced SRM features that capture high-dimensional residual co-occurrences linked to embedding artifacts.
 
-\subsection{Cross-Domain Steganalysis}
-Recent work has studied cross-domain generalisation in steganalysis, specifically training on images from one camera model and testing on another~\cite{fridrich2012srm}. Unsupervised domain adaptation and self-supervised approaches have been proposed to bridge this gap. However, none of this work examines the specific shift from natural photographs to ML-generated images, which is qualitatively different from inter-camera variation: it involves a shift in the entire generative process, not merely sensor noise characteristics.
+\subsection{Generative and Coverless Steganography}
+Recent generative steganography methods use GAN- or diffusion-based models to generate stego-images directly from secret messages~\cite{hu2023,liu2024}. Related coverless approaches encode information by selecting or generating content rather than modifying a fixed image~\cite{duan2020}. Our setup differs in a key way: ML-generated images are treated as \emph{passive carriers}, and standardized post-hoc embedding (LSB and DCT) is applied afterward. This separation between generation and embedding lets us test carrier-origin effects under matched embedding conditions.
 
-\subsection{Deepfake and Synthetic Image Detection}
-Wang et al.~\cite{wang2020cnn} showed that CNN-generated images are surprisingly detectable by simple linear classifiers, confirming that generative models impose statistical regularities absent from photographs. Corvi et al.~\cite{corvi2023diffusion} extended this to diffusion-model-generated images. We leverage these findings (ML-generated images do have different statistical properties from photographs) and apply the same insight to steganalysis rather than image forensics. The key difference: deepfake detection aims to distinguish real from fake; we aim to understand how this statistical difference affects the \emph{detectability of embedded content}.
+\subsection{AI-Generated Carriers and Closest Prior Work}
+The closest related study is De et al.~\cite{de2022ai}, which demonstrates AI-generated photorealistic images for steganographic secret sharing. However, it does not perform a controlled real-versus-ML comparison under identical embedding pipelines, nor does it evaluate detectability using classical steganalysis endpoints such as ROC-AUC. Our factorial design (carrier origin $\times$ embedding method $\times$ payload size $\times$ encryption) makes steganalysis detectability the primary outcome.
+
+\subsection{Cross-Domain and Synthetic-Image Forensics}
+Cross-domain steganalysis has typically examined distribution shifts between camera sources~\cite{fridrich2012srm}. The real-versus-synthetic shift is broader, because the full image-generation process changes when moving from camera capture to GAN or diffusion synthesis. Synthetic-image forensics reports distinct statistical traces in generated images~\cite{wang2020cnn,corvi2023diffusion}, supporting our hypothesis that carrier origin can affect steganographic detectability.
 
 \subsection{Classical vs.\ Deep Steganalysis}
-State-of-the-art steganalysis uses deep residual networks achieving near-perfect AUC on standard benchmarks~\cite{luo2024survey}. We deliberately choose SRM+FLD (classical ML) over these neural approaches for three reasons: (1) it matches our course scope in cryptography/steganography; (2) its hand-crafted features are interpretable and less likely to overfit to carrier-specific artefacts, making it a fairer cross-domain test; (3) it runs on CPU in minutes, making the full 1{,}000-image study feasible within the project timeline.
+Recent deep-learning steganalysis methods can achieve strong benchmark accuracy~\cite{luo2024survey}, but often with higher computational requirements and reduced interpretability. We therefore prioritize SRM+FLD and RS analysis to maintain interpretability and CPU feasibility, in line with the cryptography-focused scope of this project. Overall, prior work has studied embedding techniques, steganalysis models, generative steganography, and synthetic-image detection largely in isolation; our contribution is a controlled evaluation of how carrier origin influences detectability.
 
 % ============================================================
 \section{Relation to Curriculum}
 % ============================================================
 
-This project applies core concepts from \textbf{Cryptography and Steganography} (LSB/DCT embedding, AES-256 encryption, information-theoretic detectability), \textbf{Research Methods} (factorial experimental design, ANOVA, effect sizes, hypothesis testing), \textbf{Machine Learning} (SRM+FLD feature-based classification), and \textbf{Algorithm Design and Data Structures} (DCT and QIM implementation in Python).
+This project connects directly to \textbf{Computer Security} (AES-256-CBC and adversarial threat modeling), \textbf{AI and Machine Learning} (SRM+FLD feature-based classification and cross-domain evaluation), \textbf{Software Engineering and Architectures} (modular, testable pipeline design), and \textbf{Statistics} (ANOVA, non-parametric testing, effect sizes, and confidence intervals for rigorous comparison).
 
 % ============================================================
 \section{Planning}
@@ -234,15 +245,14 @@ The project is divided into two phases aligned with the Semester~2 academic cale
 \section{Minimal Passing Requirements}
 % ============================================================
 
-\textbf{Product:} Functional LSB and DCT embedding pipelines (plain and AES-256 encrypted); RS~Analysis and SRM+FLD detectors evaluated on all 1{,}000 images across both encryption conditions.
+In terms of approaches, the minimum is one encryption algorithm and two embedding methods: one in the spatial domain and one in the frequency domain.
 
-\textbf{Validation:} RQ1 and RQ4 answered with significance tests on AUC across carrier types and encryption conditions; null results characterised with 95\%~CIs.
+From the five research questions, at minimum RQ3 (encryption) and RQ4 (embedding-method interaction) must be answered.
 
 % ============================================================
-\section{References}
+\clearpage
+\renewcommand{\refname}{References}
 % ============================================================
-
-\bibliographystyle{plain}
 
 \begin{thebibliography}{25}
 \small
@@ -433,7 +443,7 @@ X.~Duan, D.~Jia, B.~Li, D.~Guo, E.~Zhang, and C.~Qin,
 3.3 & Image quality metrics (PSNR/SSIM/FSIM) & 21.04 & 01.05 & 8 &
   & & & \cellcolor{ganttamber!50} & \cellcolor{ganttamber!50} & & \\
 \hline
-3.4 & Encryption-effect experiments (RQ4) & 28.04 & 08.05 & 8 &
+3.4 & Encryption-effect experiments (RQ3) & 28.04 & 08.05 & 8 &
   & & & & \cellcolor{ganttpurple!50} & \cellcolor{ganttpurple!50} & \\
 \hline
 3.5 & Statistical analysis (ANOVA, Wilcoxon) & 28.04 & 08.05 & 8 &
