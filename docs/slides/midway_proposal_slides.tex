@@ -237,6 +237,26 @@ We evaluate performance primarily with ROC-AUC and report uncertainty and effect
 \end{exampleblock}
 \end{frame}
 
+\begin{frame}{Hypotheses and Decision Criteria}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{1.3cm}p{6.9cm}p{4.4cm}@{}}
+\toprule
+\textbf{H} & \textbf{Claim} & \textbf{Primary test} \\
+\midrule
+H1 & Carrier origin affects steganalysis AUC. & Wilcoxon + effect size \\
+H2 & Real-vs-ML AUC gap increases with payload. & Spearman trend + ANOVA interaction \\
+H3 & Carrier origin effect depends on embedding method. & Two-way ANOVA interaction \\
+H4 & Encryption changes AUC and may interact with origin. & Wilcoxon by condition + interaction check \\
+\bottomrule
+\end{tabular}
+\vspace{0.2cm}
+\begin{exampleblock}{Common statistical settings}
+\small
+Primary metric is ROC-AUC with Bonferroni-adjusted alpha (0.05/6 = 0.0083), plus 95\% confidence intervals and Cohen's d.
+\end{exampleblock}
+\end{frame}
+
 \begin{frame}{Hypotheses: Prior Literature Support}
 \footnotesize
 \renewcommand{\arraystretch}{1.3}
