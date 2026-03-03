@@ -66,18 +66,17 @@ project-proposal/
 
 ## 1) Objective and Scope
 
-The implementation is designed to isolate the effect of **carrier origin** on steganographic detectability while holding the rest of the pipeline fixed. The confirmatory scope is:
-- `RQ1`: carrier-origin effect
-- `RQ2`: payload trend effect
-- `RQ3`: encryption effect and interaction with origin
-- `RQ4`: embedding-method interaction with origin
-
-`RQ5` (image quality) is treated as an additional quality/validity check.
+The implementation is designed to isolate the effect of **carrier source** on steganographic detectability while holding the rest of the pipeline fixed. The confirmatory scope is:
+- `RQ1`: real vs pooled-ML source effect
+- `RQ2`: generation-model effect within ML (ML-A vs ML-B)
+- `RQ3`: payload interaction with source effects
+- `RQ4`: embedding-method interaction with source
+- `RQ5`: encryption interaction with source
 
 ## 2) Controlled Study Design
 
 Primary design factors:
-- Carrier origin: `real`, `ML-generated`
+- Carrier source: `real`, `ML-A`, `ML-B`
 - Embedding method: `LSB`, `DCT-QIM`
 - Payload: `low`, `medium`, `high`
 - Encryption condition: `plain`, `AES-256-CBC`
@@ -87,13 +86,12 @@ All preprocessing and evaluation settings are standardized to keep comparisons f
 ## 3) Dataset Construction
 
 ### Real carriers (500)
-- `RAISE`: 250 images
-- `COCO`: 150 images
-- `Flickr30k`: 100 images
+- `COCO`: 300 images
+- `Flickr30k`: 200 images
 
-### ML carriers (500)
-- `Stable Diffusion v2.1`: 250 images
-- `StyleGAN3`: 250 images
+### ML carriers (1,000)
+- `ML-A (SDXL 1.0)`: 500 images
+- `ML-B (PixArt-alpha)`: 500 images
 
 ### Standardization
 - Resize/normalize to `512x512`, RGB, 8-bit PNG.
@@ -122,36 +120,42 @@ This ensures valid ROC/AUC computation per condition.
 
 ## 6) Steganalysis Detectors
 
-Main detectors (analyzed separately):
-- `RS Analysis` (Regular-Singular Analysis)
-- `SRM+FLD` (Spatial Rich Model + Fisher Linear Discriminant ensemble)
+Confirmatory detectors:
+- `SRM+EC` (cross-method baseline for LSB and DCT)
+- `RS Analysis` (LSB-specific confirmatory detector)
+- `Block-DCT shift test` (DCT-specific confirmatory detector)
 
-Supplementary check:
-- `chi-square` attack for LSB-oriented diagnostics
+Sensitivity-only detector:
+- `chi-square` attack for LSB robustness checks
 
 ## 7) Experiment Mapping
 
-- `Exp1 (RQ1)`: compare real vs ML AUC under matched settings; detector-specific tests (`H1`, `H2`).
-- `Exp2 (RQ2)`: test payload trend of real-vs-ML AUC gap (`H3`).
-- `Exp3 (RQ3)`: compare plain vs AES and test encryption-by-origin interaction (`H4`, `H5`).
-- `Exp4 (RQ4)`: test carrier-origin x embedding-method interaction (`H6`).
-- `Exp5 (RQ5 additional)`: evaluate quality changes across method, payload, and carrier source.
+- `Exp1 (RQ1)`: compare real vs pooled-ML detectability under matched settings.
+- `Exp2 (RQ2)`: compare ML-A vs ML-B detectability under matched settings.
+- `Exp3 (RQ3)`: test source x payload interaction.
+- `Exp4 (RQ4)`: test source x embedding-method interaction.
+- `Exp5 (RQ5)`: test source x encryption interaction.
 
-## 8) Metrics and Statistical Validation
+## 8) Detailed Validation Protocol (Working Notes)
 
-### Detectability (primary)
-- `ROC-AUC`
-- Optional secondary summaries: accuracy at Youden's J, EER, constrained FPR/FNR summaries
+### Detection metrics
+- `ROC-AUC` (primary)
+- Secondary summaries: accuracy at Youden's J, EER, and FPR at fixed FNR
 
-### Quality (additional)
+### Quality control metrics
 - `PSNR`, `SSIM`, `FSIM`
+- `BRISQUE` used as generation-stage quality gate
 
-### Statistics
-- Wilcoxon signed-rank for paired condition comparisons
-- Two-way ANOVA interaction testing where appropriate
-- Effect sizes (Cohen's d) and uncertainty intervals
-- Bonferroni correction across 6 confirmatory hypotheses:
-  - `alpha_adj = 0.05 / 6 approx 0.0083`
+### Detector usage rules
+- LSB confirmatory: `SRM+EC`, `RS`
+- DCT confirmatory: `SRM+EC`, `Block-DCT shift test`
+- `chi-square` is reported as LSB sensitivity-only (not confirmatory)
+
+### Statistical testing
+- ANOVA on AUC with source, method, payload, and encryption factors
+- Planned Wilcoxon signed-rank contrasts
+- Effect sizes (`Cohen's d`) with uncertainty reporting
+- Bonferroni correction across confirmatory comparisons
 
 ## 9) Planned Outputs
 
@@ -164,7 +168,7 @@ Supplementary check:
 
 1. Build/normalize datasets (real + ML)
 2. Generate cover/stego sets for all conditions
-3. Run RS and SRM+FLD scoring
+3. Run SRM+EC, RS, block-DCT shift, and chi-square (sensitivity) scoring
 4. Compute ROC/AUC and quality metrics
 5. Run experiment-specific statistical analyses
 6. Produce figures/tables for report and slides
