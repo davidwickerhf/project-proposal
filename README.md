@@ -31,6 +31,7 @@ Comparative study of steganographic detectability on real vs ML-generated image 
 - [12) Multi-Run Workflow](#12-multi-run-workflow)
 - [13) Validation and Integrity Checklist](#13-validation-and-integrity-checklist)
 - [14) CLI Command Reference](#14-cli-command-reference)
+- [15) Notebook Workflows](#15-notebook-workflows)
 - [To Do List](#to-do-list)
 
 ## Repository Structure
@@ -59,6 +60,11 @@ project-proposal/
 ├── data/
 ├── results/
 └── notebooks/
+    ├── README.md
+    ├── 01_ml_generation_and_convergence.ipynb
+    ├── 02_embedding_and_cover_generation.ipynb
+    ├── 03_training_workflow.ipynb
+    └── 04_full_pipeline_end_to_end.ipynb
 ```
 
 ## Technical Implementation Plan
@@ -415,6 +421,27 @@ python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/mani
 python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --execute-embeddings --execute-detectors --generate-figures
 python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --execute-embeddings --execute-detectors --disable-srm --skip-unimplemented --generate-figures
 ```
+
+### 15) Notebook Workflows
+
+Notebook guide:
+- [notebooks/README.md](notebooks/README.md)
+
+Notebooks:
+- [01_ml_generation_and_convergence.ipynb](notebooks/01_ml_generation_and_convergence.ipynb): ML cover generation (`ml_a`, `ml_b`) and convergence sweep.
+- [02_embedding_and_cover_generation.ipynb](notebooks/02_embedding_and_cover_generation.ipynb): cover merge + payload/stego manifests + embedding stage.
+- [03_training_workflow.ipynb](notebooks/03_training_workflow.ipynb): grouped folds and SRM per-method training plan/workflow.
+- [04_full_pipeline_end_to_end.ipynb](notebooks/04_full_pipeline_end_to_end.ipynb): full pipeline orchestration via Python API.
+
+Recommended order:
+1. `01_ml_generation_and_convergence.ipynb`
+2. `02_embedding_and_cover_generation.ipynb`
+3. `03_training_workflow.ipynb`
+4. `04_full_pipeline_end_to_end.ipynb`
+
+Execution modes:
+- Safe mode (works now): `engine='stub'`, dry-run embedding/detectors, SRM planning mode.
+- Full mode (after deferred functions): `engine='diffusers'`, enable embedding/detectors/SRM execution.
 
 ## To Do List
 
