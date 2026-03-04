@@ -8,12 +8,13 @@ Comparative study of steganographic detectability on real vs ML-generated image 
 
 ## Quick Links
 
-- Midway proposal (final, LaTeX): `docs/proposals/midway_proposal_final.tex`
-- Midway proposal (final, PDF): `docs/proposals/midway_proposal_final.pdf`
-- Midway proposal slides (full): `docs/slides/midway_proposal_slides.tex`
-- Midway proposal slides (full PDF): `docs/slides/midway_proposal_slides.pdf`
-- Midway proposal slides (5 min): `docs/slides/midway_proposal_slides_5min.tex`
-- Midway proposal slides (5 min PDF): `docs/slides/midway_proposal_slides_5min.pdf`
+- Midway proposal (final, LaTeX): [docs/proposals/midway_proposal_final.tex](docs/proposals/midway_proposal_final.tex)
+- Midway proposal (final, PDF): [docs/proposals/midway_proposal_final.pdf](docs/proposals/midway_proposal_final.pdf)
+- Midway proposal slides (full, LaTeX): [docs/slides/midway_proposal_slides.tex](docs/slides/midway_proposal_slides.tex)
+- Midway proposal slides (full, PDF): [docs/slides/midway_proposal_slides.pdf](docs/slides/midway_proposal_slides.pdf)
+- Implementation slides (PDF): [docs/slides/implementation_slides.pdf](docs/slides/implementation_slides.pdf)
+- Midway proposal slides (5 min, LaTeX): [docs/slides/midway_proposal_slides_5min.tex](docs/slides/midway_proposal_slides_5min.tex)
+- Midway proposal slides (5 min, PDF): [docs/slides/midway_proposal_slides_5min.pdf](docs/slides/midway_proposal_slides_5min.pdf)
 
 ## Repository Structure
 

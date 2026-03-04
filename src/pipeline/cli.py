@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+"""CLI entrypoint for running pipeline stages.
+
+Design notes:
+- CLI is intentionally thin; all stage logic lives in `PipelineRunner`.
+- Inputs can be absolute or project-root-relative paths.
+- Command outputs print artifact locations for easy scripting.
+"""
+
 import argparse
 from pathlib import Path
 
@@ -8,10 +16,12 @@ from src.pipeline.runner import PipelineRunner
 
 
 def _resolve_path(path: Path, project_root: Path) -> Path:
+    """Resolve a possibly-relative CLI path against the project root."""
     return path if path.is_absolute() else (project_root / path)
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Create the command parser for all supported pipeline stages."""
     parser = argparse.ArgumentParser(
         description="Pipeline scaffold utilities for project-proposal."
     )
@@ -77,6 +87,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Dispatch one CLI command to the corresponding `PipelineRunner` stage."""
     args = _parser().parse_args()
     project_root = args.project_root.resolve()
     config = PipelineConfig.from_project_root(project_root)

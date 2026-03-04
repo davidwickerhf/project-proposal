@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+"""Stage orchestrator for the steganography experiment pipeline.
+
+`PipelineRunner` is the only layer that should handle file I/O for deferred
+algorithm components. Deferred embedding/encryption/detection functions are
+kept closed-loop (in-memory in/out), while this module:
+- reads/writes manifests,
+- resolves relative paths,
+- materializes artifacts in canonical layout.
+"""
+
 import hashlib
 import json
 import secrets
@@ -26,27 +36,34 @@ from src.pipeline.config import PipelineConfig
 
 
 def _stable_iv(group_id: int, payload_level: str) -> bytes:
+    """Create a deterministic 16-byte IV from group and payload level."""
     digest = hashlib.sha256(f"{group_id}:{payload_level}".encode("utf-8")).digest()
     return digest[:16]
 
 
 class PipelineRunner:
+    """Execute pipeline stages and keep all contracts aligned with README."""
+
     def __init__(self, config: PipelineConfig) -> None:
         self.config = config
         self.paths = config.paths
 
     def init_layout(self) -> None:
+        """Create the full expected directory hierarchy for data/results artifacts."""
         self.paths.ensure_layout()
 
     def _resolve_manifest_path(self, value: str | Path) -> Path:
+        """Resolve relative manifest paths against project root for local file access."""
         path = Path(value)
         return path if path.is_absolute() else (self.config.project_root / path)
 
     def _to_project_relative(self, value: Path | str) -> str:
+        """Store manifest paths relative to project root when possible."""
         path = self._resolve_manifest_path(value)
         try:
             return str(path.relative_to(self.config.project_root))
         except ValueError:
+            # If a path is outside project root, keep absolute path as fallback.
             return str(path)
 
     def standardize_covers_from_index(
@@ -66,6 +83,7 @@ class PipelineRunner:
             group_id = int(row["group_id"])
             source = row["source"]
             out_path = self.paths.cover_path(group_id, source)  # type: ignore[arg-type]
+            # Read raw image path from manifest, standardize to canonical cover format.
             standardize_and_save(
                 input_path=self._resolve_manifest_path(row["raw_image_path"]),
                 output_path=out_path,
@@ -86,6 +104,7 @@ class PipelineRunner:
                 )
             )
 
+        # Covers manifest is the source-of-truth for all downstream pairing.
         output_path = output_manifest_path or (self.paths.manifests_dir / "covers_master.csv")
         write_dataclass_csv(output_path, records)
         return output_path
@@ -96,6 +115,11 @@ class PipelineRunner:
         output_manifest_path: Path | None = None,
         write_payload_files: bool = False,
     ) -> Path:
+        """Generate payload manifest entries for all groups/levels/encryption states.
+
+        When ``write_payload_files`` is True, payload binaries are also materialized.
+        Encryption branch intentionally calls the placeholder AES function.
+        """
         cover_rows = read_rows_csv(covers_manifest_path)
         groups = unique_group_ids(cover_rows)
         if len(groups) != self.config.n_groups:
@@ -114,6 +138,7 @@ class PipelineRunner:
                     iv = _stable_iv(group_id, payload_level)
 
                     if write_payload_files:
+                        # Optional artifact materialization for fully executable runs.
                         payload_path.parent.mkdir(parents=True, exist_ok=True)
                         if encryption == "plain":
                             payload_path.write_bytes(payload_bytes)
@@ -146,9 +171,11 @@ class PipelineRunner:
         payload_manifest_path: Path,
         output_manifest_path: Path | None = None,
     ) -> Path:
+        """Enumerate all stego jobs from covers x methods x payloads x encryption."""
         cover_rows = read_rows_csv(covers_manifest_path)
         payload_rows = read_rows_csv(payload_manifest_path)
 
+        # Fast lookup by the natural composite key of payload artifacts.
         payload_index = {
             (int(row["group_id"]), row["payload_level"], row["encryption"]): row
             for row in payload_rows
@@ -187,6 +214,7 @@ class PipelineRunner:
                             )
                         )
 
+        # This manifest drives the embedding execution stage.
         output_path = output_manifest_path or (self.paths.manifests_dir / "stego_manifest.csv")
         write_dataclass_csv(output_path, records)
         return output_path
@@ -196,6 +224,7 @@ class PipelineRunner:
         covers_manifest_path: Path,
         output_path: Path | None = None,
     ) -> Path:
+        """Create grouped 5-fold split JSON from the covers manifest group IDs."""
         cover_rows = read_rows_csv(covers_manifest_path)
         group_ids = unique_group_ids(cover_rows)
         folds = generate_grouped_5fold_splits(
@@ -217,6 +246,7 @@ class PipelineRunner:
         splits_json_path: Path,
         output_manifest_path: Path | None = None,
     ) -> Path:
+        """Build per-method SRM training job manifest from split definitions."""
         splits_obj = json.loads(splits_json_path.read_text(encoding="utf-8"))
         folds = [FoldSplit(**fold) for fold in splits_obj["folds"]]
 
@@ -240,6 +270,7 @@ class PipelineRunner:
                     )
                 )
 
+        # 2 methods x 5 folds = 10 jobs in the locked design.
         output_path = output_manifest_path or (self.paths.splits_dir / "srm_training_jobs.csv")
         write_dataclass_csv(output_path, records)
         return output_path
@@ -261,6 +292,7 @@ class PipelineRunner:
         from src.data.images import load_image, save_png
 
         for row in rows:
+            # Runner handles file I/O; embedding functions stay closed-loop.
             cover_image = load_image(self._resolve_manifest_path(row["cover_path"]))
             payload_bytes = self._resolve_manifest_path(row["payload_path"]).read_bytes()
             method = row["method"]
@@ -285,10 +317,12 @@ class PipelineRunner:
         return len(rows)
 
     def _generate_payload_bytes(self, payload_bits: int, rng: random.Random) -> bytes:
+        """Generate deterministic pseudo-random payload bytes for one condition row."""
         n_bytes = payload_bits // 8
         return bytes(rng.getrandbits(8) for _ in range(n_bytes))
 
     def _embed_params_json(self, method: str, payload_level: str) -> str:
+        """Return serialized embedding hyperparameters stored in stego manifest."""
         if method == "lsb":
             if payload_level in {"low", "medium"}:
                 k = 1

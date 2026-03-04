@@ -1,0 +1,16 @@
+\frametitle{Deferred Function Contracts: Detection and SRM}
+\tiny
+\begin{lstlisting}[language=Python]
+# Statistical detectors
+rs_analysis_score(image: Image.Image) -> float
+chi_square_score(image: Image.Image) -> float
+block_dct_shift_score(image: Image.Image) -> float
+
+# SRM model API
+train_srm_ec_model(training_input: SRMTrainingInput) -> SRMModelArtifact
+score_srm_ec_model(model: SRMModelArtifact,
+                   x_samples: Sequence[Sequence[float]]) -> list[float]
+\end{lstlisting}
+\begin{alertblock}{Rule}
+{\scriptsize Input/output only. Model training/inference functions return artifacts/scores and do not perform persistence.}
+\end{alertblock}

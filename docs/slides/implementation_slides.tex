@@ -1,6 +1,6 @@
 \documentclass[aspectratio=169,11pt]{beamer}
 
-% ---- Minimalist theme ----
+% ---- Minimalist theme (same style family as midway slides) ----
 \usetheme{default}
 \usecolortheme{default}
 \setbeamertemplate{navigation symbols}{}
@@ -8,7 +8,7 @@
 \setbeamertemplate{itemize items}[circle]
 \setbeamertemplate{enumerate items}[default]
 
-% ---- Font: TeX Gyre Heros (clean Helvetica) ----
+% ---- Font: TeX Gyre Heros ----
 \usepackage[T1]{fontenc}
 \usepackage{tgheros}
 \renewcommand{\familydefault}{\sfdefault}
@@ -17,24 +17,22 @@
 % ---- Packages ----
 \usepackage{amsmath}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{tikz}
 \usepackage{xcolor}
-\usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
+\usetikzlibrary{arrows.meta,positioning,calc,fit}
 
-\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,decorations.pathreplacing}
+% ---- Maastricht University colors ----
+\definecolor{umdark}{HTML}{001C3D}
+\definecolor{umorange}{HTML}{E84E10}
+\definecolor{umlight}{HTML}{4A90C4}
+\definecolor{umgray}{HTML}{6B7280}
+\definecolor{umbg}{HTML}{F8F9FA}
+\definecolor{umfaint}{HTML}{E5E7EB}
 
-% ---- Maastricht University Colors ----
-\definecolor{umdark}{HTML}{001C3D}       % UM primary dark blue
-\definecolor{umorange}{HTML}{E84E10}     % UM accent orange-red
-\definecolor{umlight}{HTML}{4A90C4}      % UM light blue accent
-\definecolor{umgray}{HTML}{6B7280}       % neutral gray
-\definecolor{umbg}{HTML}{F8F9FA}         % very light background
-\definecolor{umfaint}{HTML}{E5E7EB}      % faint rule color
-\definecolor{umgreen}{HTML}{059669}      % success green
-
-% ---- Apply UM colors to Beamer ----
+% ---- Apply colors to Beamer ----
 \setbeamercolor{normal text}{fg=umdark}
 \setbeamercolor{frametitle}{fg=umdark}
 \setbeamercolor{title}{fg=umdark}
@@ -48,24 +46,25 @@
 \setbeamercolor{block title}{bg=umdark,fg=white}
 \setbeamercolor{block body}{bg=umdark!5,fg=umdark}
 \setbeamercolor{block title alerted}{bg=umorange,fg=white}
-\setbeamercolor{block body alerted}{bg=umorange!5,fg=umdark}
+\setbeamercolor{block body alerted}{bg=umorange!8,fg=umdark}
 \setbeamercolor{block title example}{bg=umlight,fg=white}
-\setbeamercolor{block body example}{bg=umlight!5,fg=umdark}
+\setbeamercolor{block body example}{bg=umlight!8,fg=umdark}
 
-% ---- Code listing style ----
+% ---- Listing style ----
 \lstset{
   basicstyle=\ttfamily\scriptsize,
-  keywordstyle=\color{umdark}\bfseries,
+  keywordstyle=\color{umdark},
   commentstyle=\color{umgray},
   stringstyle=\color{umorange},
   backgroundcolor=\color{umbg},
   frame=single,
   rulecolor=\color{umfaint},
   breaklines=true,
-  showstringspaces=false
+  showstringspaces=false,
+  columns=fullflexible
 }
 
-% ---- Frametitle with thin rule ----
+% ---- Frametitle style ----
 \setbeamertemplate{frametitle}{%
   \vspace{0.35cm}%
   \noindent\hspace*{0pt}%
@@ -79,11 +78,11 @@
 \setbeamerfont{frametitle}{size=\large,series=\bfseries}
 \setbeamersize{text margin left=0.7cm,text margin right=0.7cm}
 
-% ---- Minimal footline ----
+% ---- Footline ----
 \setbeamertemplate{footline}{%
   \hbox{%
     \begin{beamercolorbox}[wd=\paperwidth,ht=2.2ex,dp=1ex]{footline}%
-      \hspace{1em}{\scriptsize\color{umgray}Implementation Guide -- Image Steganography Study}%
+      \hspace{1em}{\scriptsize\color{umgray}Implementation Blueprint -- Carrier Origin and Steganographic Detectability}%
       \hfill%
       {\scriptsize\color{umgray}\insertframenumber/\inserttotalframenumber}%
       \hspace{1em}%
@@ -91,1056 +90,535 @@
   }%
 }
 
-% ---- Title ----
-\title{Implementation Guide:\\Image Steganography Experiment}
-\subtitle{Step-by-Step Technical Walkthrough}
-\author{Nico \;\textbar\; Nikolas \;\textbar\; Abdul \;\textbar\; Daria \;\textbar\; Jimena \;\textbar\; David}
+% ---- Metadata ----
+\title{Implementation Blueprint\\Carrier-Origin Steganography Study}
+\subtitle{From Theory to Concrete Pipeline Execution}
+\newcommand{\teamauthors}{Abdul Moiz Akbar \;|\; Malo Coquin \;|\; Daria Gjonbalaj \;|\; Nico Muller-Spath\\Jimena Narvaez del Cid \;|\; David Wicker \;|\; Nikolas Zouros}
+\author[Project 2.2 Team]{Project 2.2 Team}
 \institute{Department of Advanced Computing Sciences\\Maastricht University}
-\date{Project 2.2\enspace\textbar\enspace February 2026}
+\date{Project 2.2 \;|\; March 2026}
 
 \begin{document}
 
 % ============================================================
-% TITLE
-% ============================================================
 \begin{frame}[plain]
 \vfill
 \begin{center}
-{\color{umorange}\rule{0.4\textwidth}{2pt}}\\[12pt]
+{\color{umorange}\rule{0.42\textwidth}{2pt}}\\[12pt]
 {\LARGE\bfseries\color{umdark}\inserttitle}\\[10pt]
 {\normalsize\color{umgray}\insertsubtitle}\\[16pt]
-{\small\color{umdark}\insertauthor}\\[6pt]
+{\small\color{umdark}\teamauthors}\\[8pt]
 {\small\color{umorange}\insertinstitute}\\[8pt]
 {\footnotesize\color{umgray}\insertdate}\\[12pt]
-{\color{umorange}\rule{0.4\textwidth}{2pt}}
+{\color{umorange}\rule{0.42\textwidth}{2pt}}
 \end{center}
 \vfill
 \end{frame}
 
 % ============================================================
-% OVERVIEW
+\begin{frame}{Agenda}
+\begin{enumerate}
+\item Theoretical grounding and RQ-to-pipeline mapping
+\item Locked design, cardinalities, and naming contracts
+\item Stage-by-stage pipeline internals and function calls
+\item Data structures, manifests, and split/training logic
+\item Deferred-module contracts and implementation boundaries
+\item Execution commands, test strategy, and next implementation tasks
+\end{enumerate}
+\end{frame}
+
 % ============================================================
-\begin{frame}{Implementation Overview}
-\vspace{0.1cm}
-\centering
-\begin{tikzpicture}[scale=0.85, every node/.style={scale=0.85},
-  phase/.style={draw=umdark,rounded corners=5pt,minimum width=2.2cm,minimum height=1.4cm,align=center,font=\small,thick,fill=white},
-  arr/.style={-{Stealth[length=5pt]},very thick,umorange}
-]
-\node[phase,fill=umlight!15] (p1) at (0,0) {\textbf{Phase 1}\\[-2pt]{\scriptsize Dataset}\\[-2pt]{\scriptsize Construction}};
-\node[phase,fill=umorange!12] (p2) at (3.2,0) {\textbf{Phase 2}\\[-2pt]{\scriptsize Steganographic}\\[-2pt]{\scriptsize Embedding}};
-\node[phase,fill=umdark!10] (p3) at (6.4,0) {\textbf{Phase 3}\\[-2pt]{\scriptsize Steganalysis}\\[-2pt]{\scriptsize Detection}};
-\node[phase,fill=umlight!15] (p4) at (9.6,0) {\textbf{Phase 4}\\[-2pt]{\scriptsize Cross-Domain}\\[-2pt]{\scriptsize Experiments}};
-\node[phase,fill=umorange!12] (p5) at (12.8,0) {\textbf{Phase 5}\\[-2pt]{\scriptsize Evaluation}\\[-2pt]{\scriptsize \& Analysis}};
+\section{Theory to Design}
 
-\draw[arr] (p1) -- (p2);
-\draw[arr] (p2) -- (p3);
-\draw[arr] (p3) -- (p4);
-\draw[arr] (p4) -- (p5);
-
-\node[font=\scriptsize,text=umgray,below=4pt of p1] {Week 1};
-\node[font=\scriptsize,text=umgray,below=4pt of p2] {Week 2};
-\node[font=\scriptsize,text=umgray,below=4pt of p3] {Weeks 3--4};
-\node[font=\scriptsize,text=umgray,below=4pt of p4] {Week 5};
-\node[font=\scriptsize,text=umgray,below=4pt of p5] {Week 5--6};
-\end{tikzpicture}
-
-\vspace{0.3cm}
-
-\begin{columns}[T]
-\begin{column}{0.45\textwidth}
-\begin{block}{Deliverables}
+\begin{frame}{Theoretical Core and Implementation Consequence}
 \small
+\begin{columns}[T]
+\begin{column}{0.54\textwidth}
+\begin{block}{Research claim}
+Carrier source distribution (real vs ML) may alter steganalysis detectability under matched embedding conditions.
+\end{block}
+\begin{block}{Design implication}
+The pipeline must control everything except source:
 \begin{itemize}
-\item 1,000 images (500 real + 500 ML-generated)
-\item Cover/stego pairs across all conditions
-\item Steganalysis results (RS Analysis + SRM)
-\item Statistical analysis + visualizations
+\item same image shape and format (RGB, 512x512, PNG)
+\item same payload levels and encryption states
+\item same detector protocol and grouped folds
 \end{itemize}
 \end{block}
 \end{column}
-\begin{column}{0.45\textwidth}
-\begin{block}{Tech Stack}
+\begin{column}{0.42\textwidth}
+\begin{alertblock}{Operational rule}
 \small
-\begin{itemize}
-\item Python 3.11+ with NumPy, SciPy
-\item scikit-learn (SRM/FLD), Pillow, scikit-image
-\item diffusers (Stable Diffusion), StyleGAN3
-\item Matplotlib, Seaborn for plots
-\end{itemize}
-\end{block}
+Every artifact is keyed by \texttt{group\_id}, and all variants of the same semantic anchor stay grouped through splitting and evaluation.
+\end{alertblock}
+\begin{exampleblock}{Why this matters}
+\small
+Prevents leakage and lets us attribute performance differences to source/method/payload/encryption, not data contamination.
+\end{exampleblock}
 \end{column}
 \end{columns}
 \end{frame}
 
-% ============================================================
-% PHASE 1: DATASET
-% ============================================================
-\section{Phase 1: Dataset Construction}
+\begin{frame}{RQ Mapping to Pipeline Outputs}
+\scriptsize
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{@{}p{1.0cm}p{5.0cm}p{6.9cm}@{}}
+\toprule
+\textbf{RQ} & \textbf{Question} & \textbf{Pipeline output required} \\
+\midrule
+RQ1 & Real vs pooled ML detectability & Fold-wise prediction tables by source + AUC contrasts \\
+RQ2 & ML-A vs ML-B detectability & Source-specific metrics (\texttt{ml\_a}, \texttt{ml\_b}) \\
+RQ3 & Payload interaction & Metrics grouped by \texttt{payload\_level} (low/medium/high) \\
+RQ4 & Embedding interaction & Metrics grouped by \texttt{method} (lsb/dct) \\
+RQ5 & Encryption interaction & Metrics grouped by \texttt{encryption} (plain/encrypted) \\
+\bottomrule
+\end{tabular}
+\vspace{0.15cm}
+\begin{block}{Implementation interpretation}
+The code must produce consistent condition keys in every manifest and prediction row: 
+\texttt{group\_id, source, method, payload\_level, encryption, fold}.
+\end{block}
+\end{frame}
 
-\begin{frame}{Phase 1: Dataset Construction -- Overview}
-\vspace{0.2cm}
+% ============================================================
+\section{Locked Contracts}
+
+\begin{frame}{Locked Dataset Cardinalities}
+\small
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\begin{block}{Canonical unit}
+\texttt{group\_id} = one caption/prompt anchor
+\end{block}
+\begin{itemize}
+\item Groups: \textbf{500}
+\item Covers/group: \textbf{3} (real, ml\_a, ml\_b)
+\item Total covers: \textbf{1,500}
+\item Methods: \textbf{2} (lsb, dct)
+\item Payload levels: \textbf{3}
+\item Encryption states: \textbf{2}
+\end{itemize}
+\end{column}
+\begin{column}{0.46\textwidth}
+\begin{alertblock}{Derived counts}
+\small
+Stego variants per cover =
+\[
+2 \times 3 \times 2 = 12
+\]
+Total stegos =
+\[
+1{,}500 \times 12 = 18{,}000
+\]
+Persisted images total =
+\[
+1{,}500 + 18{,}000 = 19{,}500
+\]
+\end{alertblock}
+\vspace{-0.1cm}
+{\scriptsize Consistency check: every cover row maps to exactly 12 stego rows.}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Naming and Path Contracts}
+\small
+\begin{block}{Filename templates}
+\begin{itemize}
+\item Cover: \texttt{g\{group\_id:04d\}\_\_src-\{source\}.png}
+\item Stego: \texttt{g\{group\_id:04d\}\_\_src-\{source\}\_\_m-\{method\}\_\_p-\{payload\}\_\_e-\{encryption\}.png}
+\item Payload: \texttt{g\{group\_id:04d\}\_\_p-\{payload\}\_\_e-\{encryption\}.bin}
+\end{itemize}
+\end{block}
+
+\begin{block}{Storage roots (project-relative in manifests)}
+\scriptsize
+\texttt{data/covers/\{real|ml\_a|ml\_b\}/...}\\
+\texttt{data/payloads/\{plain|encrypted\}/\{low|medium|high\}/...}\\
+\texttt{data/stego/\{lsb|dct\}/\{low|medium|high\}/\{plain|encrypted\}/\{source\}/...}
+\end{block}
+
+\begin{alertblock}{Git portability requirement}
+No absolute local paths in metadata. All path fields are relative to repository root.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Manifest Schemas Used by the Pipeline}
+\scriptsize
+\begin{itemize}
+\item \texttt{data/manifests/covers\_master.csv}
+\begin{itemize}
+\item \texttt{group\_id, source, dataset, orig\_id, caption\_id, caption\_text, image\_path, qc\_pass, qc\_score, seed}
+\end{itemize}
+\item \texttt{data/manifests/payload\_manifest.csv}
+\begin{itemize}
+\item \texttt{group\_id, payload\_level, encryption, payload\_path, payload\_bits, aes\_iv, aes\_key\_id, seed}
+\end{itemize}
+\item \texttt{data/manifests/stego\_manifest.csv}
+\begin{itemize}
+\item \texttt{group\_id, source, method, payload\_level, encryption, cover\_path, payload\_path, stego\_path, embed\_params, seed}
+\end{itemize}
+\item \texttt{results/splits/splits\_grouped5fold.json}
+\begin{itemize}
+\item per fold: \texttt{train\_group\_ids, val\_group\_ids, test\_group\_ids}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Pipeline Internals}
+
+\begin{frame}{Pipeline Modules and Responsibilities}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Core modules}
+\begin{itemize}
+\item \texttt{src/pipeline/config.py}
+\item \texttt{src/pipeline/runner.py}
+\item \texttt{src/pipeline/cli.py}
+\item \texttt{src/common/contracts.py}
+\item \texttt{src/data/images.py}
+\item \texttt{src/data/manifests.py}
+\item \texttt{src/evaluation/splits.py}
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Design boundary}
+\begin{itemize}
+\item Runner owns file I/O and manifest flow.
+\item Deferred algorithms are closed-loop in-memory APIs.
+\item CLI is thin: parse args, call one runner stage, print output path.
+\end{itemize}
+\end{block}
+\begin{exampleblock}{Implemented stages}
+\scriptsize
+\texttt{init\_layout, standardize\_covers\_from\_index, build\_payload\_manifest, build\_stego\_manifest, create\_grouped\_splits, build\_srm\_training\_jobs, run\_embedding\_stage}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{End-to-End Call Sequence (CLI -> Runner)}
+\scriptsize
+\begin{lstlisting}[language=bash]
+python3 -m src.pipeline.cli --project-root . init-layout
+python3 -m src.pipeline.cli --project-root . standardize-covers \
+  --input-index data/manifests/raw_cover_index_real.csv
+python3 -m src.pipeline.cli --project-root . build-payload-manifest \
+  --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-stego-manifest \
+  --covers-manifest data/manifests/covers_master.csv \
+  --payload-manifest data/manifests/payload_manifest.csv
+python3 -m src.pipeline.cli --project-root . create-splits \
+  --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-training-jobs \
+  --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . run-embedding-stage \
+  --stego-manifest data/manifests/stego_manifest.csv
+\end{lstlisting}
+\begin{alertblock}{Execution note}
+\small
+\texttt{run-embedding-stage} is dry-run unless \texttt{--execute}. With execute enabled it calls deferred embedding functions.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Runner Stage Flow}
 \centering
 \begin{tikzpicture}[
-  box/.style={draw=umdark,rounded corners=4pt,minimum width=2.6cm,minimum height=0.9cm,align=center,font=\small,thick},
-  arr/.style={-{Stealth[length=5pt]},thick,umdark}
+  scale=0.88, every node/.style={scale=0.88},
+  node distance=0.24cm,
+  stage/.style={draw=umdark,rounded corners=4pt,minimum width=4.2cm,minimum height=0.72cm,align=center,font=\scriptsize,fill=umlight!12},
+  arr/.style={-{Stealth[length=5pt]},thick,umorange}
 ]
-% Real branch
-\node[box,fill=umlight!15] (raise) at (0,2) {RAISE\\[-2pt]{\scriptsize DSLR RAW photos}};
-\node[box,fill=umlight!15] (coco) at (0,0.8) {COCO / Flickr30k\\[-2pt]{\scriptsize Natural photos}};
-\node[box,fill=umdark!8] (real) at (4,1.4) {\textbf{500 Real}\\[-2pt]{\scriptsize Photos}};
+\node[stage] (s1) {\texttt{init\_layout()}};
+\node[stage,below=of s1] (s2) {\texttt{standardize\_covers\_from\_index(input\_index\_csv)}};
+\node[stage,below=of s2] (s3) {\texttt{build\_payload\_manifest(covers\_manifest)}};
+\node[stage,below=of s3] (s4) {\texttt{build\_stego\_manifest(covers\_manifest, payload\_manifest)}};
+\node[stage,below=of s4] (s5) {\texttt{create\_grouped\_splits(covers\_manifest)}};
+\node[stage,below=of s5] (s6) {\texttt{build\_srm\_training\_jobs(splits\_json)}};
+\node[stage,below=of s6] (s7) {\texttt{run\_embedding\_stage(stego\_manifest, execute)}};
 
-% ML branch
-\node[box,fill=umorange!12] (sd) at (8,2) {Stable Diffusion\\[-2pt]{\scriptsize Latent diffusion}};
-\node[box,fill=umorange!12] (sg3) at (8,0.8) {StyleGAN3\\[-2pt]{\scriptsize GAN-based}};
-\node[box,fill=umdark!8] (ml) at (12,1.4) {\textbf{500 ML}\\[-2pt]{\scriptsize Images}};
-
-% Normalization
-\node[box,fill=umgreen!15,minimum width=4cm] (norm) at (8,-1) {\textbf{Normalization Pipeline}\\[-2pt]{\scriptsize 512$\times$512 px, RGB, 8-bit, PNG}};
-
-\draw[arr] (raise.east) -- (real.west);
-\draw[arr] (coco.east) -- (real.west);
-\draw[arr] (sd.east) -- (ml.west);
-\draw[arr] (sg3.east) -- (ml.west);
-\draw[arr] (real.south) |- (norm.west);
-\draw[arr] (ml.south) |- (norm.east);
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- (s4);
+\draw[arr] (s4) -- (s5);
+\draw[arr] (s5) -- (s6);
+\draw[arr] (s6) -- (s7);
 \end{tikzpicture}
+\vspace{0.05cm}
 
-\vspace{0.4cm}
+{\scriptsize Path fields in manifests are project-relative; runner resolves them at runtime.}
+\end{frame}
 
-\begin{alertblock}{Key Principle: Controlled Comparison}
+\begin{frame}[fragile]{Critical Function Calls Inside runner.py}
+\tiny
+\begin{lstlisting}[language=Python]
+# Standardization stage
+standardize_and_save(input_path, output_path, size=config.image_size)
+
+# Payload generation stage
+payload_bytes = _generate_payload_bytes(payload_bits, rng)
+if encryption == "encrypted":
+    ciphertext = encrypt_payload_aes_256_cbc(payload_bytes, key=key, iv=iv)
+
+# Embedding execution stage
+if method == "lsb":
+    stego = embed_lsb(cover_image, payload_bytes, payload_level, prng_key)
+elif method == "dct":
+    stego = embed_dct_qim(cover_image, payload_bytes, payload_level, delta)
+
+# Split stage
+folds = generate_grouped_5fold_splits(group_ids, seed=split_seed)
+\end{lstlisting}
+{\scriptsize Deferred algorithms are invoked only here; runner provides paths, payloads, and execution context.}
+\end{frame}
+
+\begin{frame}{Data Ingestion for Real Images (Implemented)}
 \small
-ML-generated images use the \textbf{same semantic prompts} derived from real image content (e.g., ``a dog in a park''). All images normalized to \textbf{identical specifications} to isolate carrier origin as the only variable.
-\end{alertblock}
-\end{frame}
-
-% ---- Real Image Collection ----
-\begin{frame}{Phase 1.1: Real Image Collection}
 \begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{exampleblock}{RAISE Dataset}
-\scriptsize
-\textbf{Source:} High-quality RAW images from DSLR cameras [Dang-Nguyen et al., 2015]
-
-\smallskip
-
-\textbf{Characteristics:}
+\begin{column}{0.5\textwidth}
+\begin{block}{Module}
+\texttt{src/data/download\_real\_covers.py}
+\end{block}
 \begin{itemize}
-\item Uncompressed RAW format, diverse scenes
-\item Well-characterized, minimal processing artifacts
-\item Ideal for steganography baseline (high SNR)
+\item Pulls COCO + Flickr30k rows from HF dataset-server
+\item Filters to detailed captions
+\item Deterministic sampling with seed
+\item Downloads raw image bytes
+\item Standardizes to canonical real covers
+\item Writes metadata files for downstream stages
 \end{itemize}
-
-\smallskip
-
-\textbf{Selection criteria:}
-\begin{itemize}
-\item Convert RAW $\rightarrow$ PNG at 512$\times$512
-\item Balanced across scene categories
-\end{itemize}
-\end{exampleblock}
 \end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{block}{COCO / Flickr30k Supplement}
-\scriptsize
-\textbf{Purpose:} Add content and scene diversity
-
-\smallskip
-
-\textbf{Characteristics:}
-\begin{itemize}
-\item Natural everyday photographs
-\item Rich semantic annotations (useful for prompt matching)
-\item Widely used in CV research
-\end{itemize}
-\end{block}
-
-\vspace{0.2cm}
-
-\begin{block}{Sampling Strategy}
-\scriptsize
-\begin{itemize}
-\item 250 images from RAISE
-\item 250 images from COCO / Flickr30k
-\item Stratified across scene categories
-\item Extract semantic captions for ML matching
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ---- ML Image Generation ----
-\begin{frame}{Phase 1.2: ML Image Generation}
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{block}{Stable Diffusion (v2.1)}
-\scriptsize
-\textbf{Architecture:} Latent diffusion model (LDM) [Rombach et al., 2022]
-
-\smallskip
-
-\textbf{Key features:}
-\begin{itemize}
-\item Text-to-image from semantic prompts
-\item Produces photorealistic results
-\item Runs locally via \texttt{diffusers} library (MPS)
-\item $\sim$3--5 hours for 250 images
-\end{itemize}
-
-\smallskip
-
-\textbf{Generation parameters:}
-\begin{itemize}
-\item Guidance scale: 7.5 (balanced quality)
-\item Steps: 50 (DDIM sampler)
-\item Prompts derived from real image captions
-\item Output: PNG, 512$\times$512
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{block}{StyleGAN3}
-\scriptsize
-\textbf{Architecture:} Alias-free GAN [Karras et al., 2021]
-
-\smallskip
-
-\textbf{Key features:}
-\begin{itemize}
-\item Well-characterized spectral artifacts (GAN fingerprint)
-\item High-resolution, diverse outputs
-\item Official NVIDIA PyTorch implementation
-\item $\sim$2--3 hours for 250 images
-\end{itemize}
-
-\smallskip
-
-\textbf{Generation parameters:}
-\begin{itemize}
-\item Use pretrained FFHQ or LSUN checkpoint
-\item Truncation: $\psi = 0.7$ (diversity vs.\ quality)
-\item Output: PNG, 512$\times$512
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
-
-\vspace{0.15cm}
-
-\centering
-{\scriptsize\color{umgray}\textbf{Optional extension:} DALL-E 3 via API as a third generation source (time permitting)}
-\end{frame}
-
-% ---- Normalization Pipeline ----
-\begin{frame}{Phase 1.3: Image Normalization Pipeline}
-\begin{columns}[T]
-\begin{column}{0.55\textwidth}
-\begin{block}{Normalization Steps}
-\scriptsize
-\begin{enumerate}
-\item \textbf{Decode / convert:} RAW $\rightarrow$ RGB (dcraw or rawpy); generated images already PNG
-\item \textbf{Resize:} Center-crop and resize to 512$\times$512 pixels (Lanczos)
-\item \textbf{Color space:} Ensure sRGB color space
-\item \textbf{Bit depth:} Convert to 8-bit per channel (uint8)
-\item \textbf{Luminance:} Normalize mean luminance across dataset
-\item \textbf{Format:} Export as lossless PNG (no JPEG compression artifacts)
-\end{enumerate}
-\end{block}
-
-\vspace{0.1cm}
-
-\begin{alertblock}{Quality Gate}
-\scriptsize
-Reject images with BRISQUE score $>$ 50 (poor perceptual quality). Re-generate rejected ML images with different seeds.
-\end{alertblock}
-\end{column}
-
-\begin{column}{0.40\textwidth}
-\centering
-\scriptsize
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Parameter} & \textbf{Value} \\
-\midrule
-Dimensions & 512$\times$512 px \\
-Color space & RGB (sRGB) \\
-Bit depth & 8-bit/channel \\
-Channels & 3 (RGB) \\
-Format & PNG (lossless) \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.3cm}
-
-\begin{block}{\small File Naming Convention}
-\scriptsize
-\texttt{<source>\_<id>\_<category>.png}\\[2pt]
-\texttt{real\_001\_cat042.png}\\
-\texttt{sd\_001\_cat042.png}\\
-\texttt{sg3\_001\_cat042.png}
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ============================================================
-% PHASE 2: EMBEDDING
-% ============================================================
-\section{Phase 2: Steganographic Embedding}
-
-\begin{frame}{Phase 2: Steganographic Embedding -- Overview}
-\vspace{0.1cm}
-
-\begin{block}{Embedding Methods}
-\scriptsize
-We implement two complementary methods spanning the capacity--imperceptibility trade-off, each applied with and without AES-256 payload encryption:
-\end{block}
-
-\vspace{0.2cm}
-
-\begin{columns}[T]
 \begin{column}{0.46\textwidth}
-\begin{exampleblock}{LSB Substitution (Spatial Domain)}
+\begin{alertblock}{Outputs}
 \scriptsize
-\textbf{Principle:} Replace least significant bits of pixel channel values with message bits.
-
-\smallskip
-
-\textbf{Characteristics:}
-\begin{itemize}
-\item High embedding capacity
-\item Simple implementation (NumPy / Pillow)
-\item Vulnerable to statistical attacks
-\item Detectable via histogram analysis [Fridrich et al., 2001]
-\end{itemize}
-\end{exampleblock}
-\end{column}
-
-\begin{column}{0.46\textwidth}
-\begin{block}{DCT-Based Embedding (Freq. Domain)}
-\scriptsize
-\textbf{Principle:} Modify DCT coefficients of 8$\times$8 pixel blocks using QIM [Chen \& Wornell, 2001].
-
-\smallskip
-
-\textbf{Characteristics:}
-\begin{itemize}
-\item Better imperceptibility
-\item Mirrors JPEG-domain steganography (F5)
-\item Lower capacity than LSB
-\item Targets mid-frequency coefficients
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
-
-\vspace{0.15cm}
-
-\centering
-{\scriptsize\color{umgray}Both methods use \textbf{pseudorandom pixel/coefficient selection} keyed by a shared secret. Payload optionally pre-encrypted with \textbf{AES-256-CBC}.}
-\end{frame}
-
-% ---- LSB Implementation ----
-\begin{frame}{Phase 2.1: LSB Embedding Implementation}
-\begin{columns}[T]
-\begin{column}{0.52\textwidth}
-\begin{block}{Algorithm}
-\scriptsize
-\begin{enumerate}
-\item \textbf{Input:} Cover image $\mathbf{I}$ (H$\times$W$\times$3), message $\mathbf{m}$, key $K$, params $(k, p)$
-\item \textbf{(Optional) Encrypt:} $\mathbf{m} \leftarrow \text{AES-256}(\mathbf{m}, K_\text{aes})$
-\item \textbf{Generate mask:} PRNG seeded with $K$ selects $p\%$ of pixels (all 3 channels)
-\item \textbf{For each selected pixel channel $I_{ij}^c$:}
-  \begin{itemize}
-  \item Replace $k$ LSBs: $I_{ij}^{c\prime} = (I_{ij}^c \land \overline{M_k}) \lor m_{bits}$
-  \end{itemize}
-\item \textbf{Output:} Stego image $\mathbf{I}'$, saved as lossless PNG
-\end{enumerate}
-\end{block}
-
-\vspace{0.1cm}
-
-\begin{alertblock}{Message Preparation}
-\scriptsize
-Pseudorandom bit sequence (deterministic via seed) as payload; ensures reproducibility and content-independence.
+\texttt{data/manifests/raw\_cover\_index\_real.csv}\\
+\texttt{data/manifests/covers\_master\_real.csv}\\
+\texttt{data/manifests/generation\_prompts.csv}\\
+\texttt{data/manifests/real\_download\_summary.json}
 \end{alertblock}
-\end{column}
-
-\begin{column}{0.44\textwidth}
-\centering
-\scriptsize
-\begin{tabular}{@{}llr@{}}
-\toprule
-\textbf{Level} & \textbf{Config} & \textbf{bpp} \\
-\midrule
-Low      & $k\!=\!1$, 25\% px & $\sim$0.08 \\
-Medium   & $k\!=\!1$, 50\% px & $\sim$0.16 \\
-High     & $k\!=\!2$, 50\% px & $\sim$0.32 \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.1cm}
-{\scriptsize bpp = bits per pixel}
-
-\vspace{0.3cm}
-
-\begin{tikzpicture}[scale=0.75]
-\node[font=\scriptsize\ttfamily,anchor=west] at (0,0.9) {Pixel R: 1101 0110 \textcolor{umorange}{0011}};
-\node[font=\scriptsize\ttfamily,anchor=west] at (0,0.45) {Message:\hspace{1.45cm}\textcolor{umorange}{1101}};
-\node[font=\scriptsize\ttfamily,anchor=west] at (0,0) {Stego R: 1101 0110 \textcolor{umorange}{1101}};
-\node[font=\scriptsize,text=umgray,anchor=west] at (0,-0.4) {$\uparrow$ $k=4$ LSBs replaced};
-\end{tikzpicture}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ---- DCT Implementation ----
-\begin{frame}{Phase 2.2: DCT Embedding Implementation}
-\begin{columns}[T]
-\begin{column}{0.52\textwidth}
-\begin{block}{Algorithm (QIM-based) [Chen \& Wornell, 2001]}
-\scriptsize
-\begin{enumerate}
-\item \textbf{(Optional) Encrypt:} $\mathbf{m} \leftarrow \text{AES-256}(\mathbf{m}, K_\text{aes})$
-\item \textbf{Split into blocks:} Divide each channel into 8$\times$8 pixel blocks
-\item \textbf{Apply 2D DCT:} $\mathbf{C} = \text{DCT2}(\mathbf{block})$
-\item \textbf{Select coefficients:} Mid-frequency range via zigzag scan (positions 10--54 of 64)
-\item \textbf{For each selected coefficient $C_i$:}
-  \begin{itemize}
-  \item Quantize and embed: $C_i' = \Delta \cdot \lfloor C_i / \Delta + 0.5 \rfloor \pm \Delta/4$ based on bit $b$
-  \end{itemize}
-\item \textbf{Inverse DCT:} $\mathbf{block}' = \text{IDCT2}(\mathbf{C}')$
-\item \textbf{Reconstruct image:} Reassemble blocks, clip to [0, 255], save PNG
-\end{enumerate}
-\end{block}
-
-{\scriptsize\color{umgray}$\Delta$ (quantization step) controls the capacity--imperceptibility trade-off.}
-\end{column}
-
-\begin{column}{0.44\textwidth}
-\centering
-\scriptsize
-\begin{tabular}{@{}llr@{}}
-\toprule
-\textbf{Level} & \textbf{Coefficients} & \textbf{bpp} \\
-\midrule
-Low      & 10\% & $\sim$0.02 \\
-Medium   & 25\% & $\sim$0.05 \\
-High     & 50\% & $\sim$0.10 \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.25cm}
-
-\begin{tikzpicture}[scale=0.6]
-% Frequency axis
-\draw[->,thick] (0,0) -- (5,0) node[right,font=\scriptsize] {freq};
-\draw[->,thick] (0,0) -- (0,2.2) node[above,font=\scriptsize] {DCT mag};
-
-% Bars representing DCT coefficients
-\foreach \x/\h in {0.3/1.8, 0.6/1.5, 0.9/1.2, 1.2/0.9} {
-  \fill[umlight!50] (\x,0) rectangle (\x+0.2,\h);
-}
-\foreach \x/\h in {1.5/0.6, 1.8/0.65, 2.1/0.5, 2.4/0.45, 2.7/0.35, 3.0/0.40} {
-  \fill[umorange!70] (\x,0) rectangle (\x+0.2,\h);
-}
-\foreach \x/\h in {3.3/0.20, 3.6/0.15, 3.9/0.10, 4.2/0.06} {
-  \fill[umgray!40] (\x,0) rectangle (\x+0.2,\h);
-}
-
-\node[font=\tiny,text=umgray] at (0.75,-0.35) {low};
-\node[font=\tiny,text=umorange] at (2.25,-0.35) {mid};
-\node[font=\tiny,text=umgray] at (3.75,-0.35) {high};
-
-\draw[decorate,decoration={brace,amplitude=3pt,mirror},thick,umorange] (1.4,-0.6) -- (3.2,-0.6);
-\node[font=\tiny,text=umorange] at (2.3,-0.9) {embedding zone};
-\end{tikzpicture}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ---- Embedding Pipeline ----
-\begin{frame}{Phase 2.3: Complete Embedding Pipeline}
-\vspace{0.1cm}
-\centering
-\begin{tikzpicture}[scale=0.85, every node/.style={scale=0.85},
-  box/.style={draw=umdark,rounded corners=3pt,minimum width=1.8cm,minimum height=0.6cm,align=center,font=\scriptsize,thick},
-  arr/.style={-{Stealth[length=3pt]},thick,umdark}
-]
-% Input
-\node[box,fill=umlight!15] (cover) at (0,0) {Cover Images\\(1,000 total)};
-
-% Encryption branch
-\node[box,fill=umgray!15,minimum width=1.5cm] (plain) at (2.8,0.5) {No encrypt};
-\node[box,fill=umgray!15,minimum width=1.5cm] (enc) at (2.8,-0.5) {AES-256};
-
-% Embedding methods
-\node[box,fill=umorange!12] (lsb) at (5.5,0.8) {LSB Embed};
-\node[box,fill=umorange!12] (dct) at (5.5,-0.8) {DCT Embed};
-
-% Payload levels
-\node[box,fill=umdark!8,minimum width=0.9cm] (l1) at (8.2,1.0) {Low};
-\node[box,fill=umdark!8,minimum width=0.9cm] (l2) at (8.2,0.0) {Med};
-\node[box,fill=umdark!8,minimum width=0.9cm] (l3) at (8.2,-1.0) {High};
-
-% Output
-\node[box,fill=umgreen!15,minimum width=2.2cm] (stego) at (11,0) {\textbf{Stego Dataset}\\cover/stego pairs};
-
-\draw[arr] (cover) -- (plain);
-\draw[arr] (cover) -- (enc);
-\draw[arr] (plain) -- (lsb);
-\draw[arr] (enc) -- (lsb);
-\draw[arr] (plain) -- (dct);
-\draw[arr] (enc) -- (dct);
-\draw[arr] (lsb) -- (l1);
-\draw[arr] (lsb) -- (l2);
-\draw[arr] (dct) -- (l2);
-\draw[arr] (dct) -- (l3);
-\draw[arr] (l1) -- (stego);
-\draw[arr] (l2) -- (stego);
-\draw[arr] (l3) -- (stego);
-\end{tikzpicture}
-
-\vspace{0.2cm}
-
-\begin{columns}[T]
-\begin{column}{0.32\textwidth}
-\begin{block}{\small Conditions}
-\scriptsize
-1,000 covers $\times$ 2 methods $\times$ 3 payload levels $\times$ 2 encryption states = \textbf{12,000 stego images} (+ 1,000 covers = 13,000 total)
-\end{block}
-\end{column}
-
-\begin{column}{0.32\textwidth}
-\begin{block}{\small Quality Checks}
-\scriptsize
-Compute for each stego image:
-\begin{itemize}
-\item \textbf{PSNR}: target $>$ 40 dB
-\item \textbf{SSIM}: target $>$ 0.95
-\item \textbf{BER}: target = 0 (lossless PNG)
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.32\textwidth}
-\begin{block}{\small Storage Format}
-\scriptsize
-\texttt{stego/<source>/<method>/}\\
-\texttt{\ \ <enc>/<level>/<id>.png}\\[4pt]
-e.g.\ \texttt{stego/real/lsb/plain/}\\
-\texttt{\ \ \ \ high/real\_042.png}
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ============================================================
-% PHASE 3: DETECTION
-% ============================================================
-\section{Phase 3: Steganalysis Detection}
-
-\begin{frame}{Phase 3: Steganalysis Detectors -- Overview}
-\vspace{0.1cm}
-
-\begin{block}{Detection Task}
-\scriptsize
-Binary detection: Given an image, determine whether it contains hidden data (\textbf{stego}) or is clean (\textbf{cover}). We use \textbf{classical signal processing methods only} — no neural networks, no GPUs.
-\end{block}
-
-\vspace{0.2cm}
-
-\begin{columns}[T]
-\begin{column}{0.30\textwidth}
-\begin{exampleblock}{Chi-Square Attack [Westfeld \& Pfitzmann, 1999]}
-\scriptsize
-\textbf{Type:} Training-free statistical test
-
-\smallskip
-
-\textbf{Principle:}
-\begin{itemize}
-\item LSB embedding equalises histogram pair frequencies $(2k, 2k+1)$
-\item Chi-square test detects this distribution shift
-\item Returns a $p$-value and embedding probability estimate
-\end{itemize}
-
-\smallskip
-
-\textbf{Strength:} Zero training, analytical, fast. Best for spatial-domain (LSB).
+\begin{exampleblock}{Current result}
+\small
+500 real covers generated:\\
+300 COCO + 200 Flickr30k.
 \end{exampleblock}
 \end{column}
-
-\begin{column}{0.30\textwidth}
-\begin{block}{RS Analysis [Fridrich et al., 2001]}
-\scriptsize
-\textbf{Type:} Training-free statistical estimator
-
-\smallskip
-
-\textbf{Principle:}
-\begin{itemize}
-\item Groups pixels, classifies as Regular/Singular by smoothness function
-\item LSB flipping shifts Regular/Singular/Negative counts predictably
-\item Estimates payload rate $\hat{p}$ analytically from group counts
-\end{itemize}
-
-\smallskip
-
-\textbf{Strength:} Generalizes to partial embedding; domain-agnostic by construction.
-\end{block}
-\end{column}
-
-\begin{column}{0.30\textwidth}
-\begin{block}{SRM + FLD Ensemble [Fridrich \& Kodovský, 2012]}
-\scriptsize
-\textbf{Type:} Classical ML (not neural network)
-
-\smallskip
-
-\textbf{Principle:}
-\begin{itemize}
-\item Extract $\sim$35,000 high-pass residual co-occurrence features
-\item Ensemble of Fisher Linear Discriminants classifies cover vs.\ stego
-\item CPU-only; fast ($\sim$30 min total)
-\end{itemize}
-
-\smallskip
-
-\textbf{Strength:} Handles both LSB and DCT embedding; cross-domain generalization test.
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ---- RS Analysis ----
-\begin{frame}{Phase 3.1: RS Analysis -- Algorithm}
-\vspace{0.1cm}
-\begin{columns}[T]
-\begin{column}{0.52\textwidth}
-\begin{block}{Algorithm [Fridrich, Goljan \& Du, 2001]}
-\scriptsize
-\begin{enumerate}
-\item \textbf{Partition} image into disjoint pixel groups $G$ of size $n$ (e.g., $n=4$ horizontal)
-\item \textbf{Define} discrimination function $f(G)$ = mean absolute difference between adjacent pixels
-\item \textbf{Apply} flipping mask $M$ (toggles LSB) and its negative $-M$:
-  \begin{itemize}
-  \item $R_M$ = fraction of groups where $f(F_M(G)) > f(G)$ (Regular)
-  \item $S_M$ = fraction of groups where $f(F_M(G)) < f(G)$ (Singular)
-  \item $R_{-M}$, $S_{-M}$ = same with $F_{-M}$
-  \end{itemize}
-\item \textbf{Solve} quadratic equation for payload estimate:
-  $$\hat{p} \approx \frac{2(R_{-M} - R_M)}{(R_{-M} - R_M) + (S_{-M} - S_M)}$$
-\end{enumerate}
-\end{block}
-\end{column}
-
-\begin{column}{0.44\textwidth}
-\begin{exampleblock}{Key Properties}
-\scriptsize
-\begin{itemize}
-\item \textbf{No training data} -- purely analytical
-\item \textbf{Quantitative:} returns $\hat{p} \in [0,1]$; threshold at $\hat{p} > 0.01$
-\item \textbf{Domain-agnostic:} same formula for real or ML-generated images
-\item Runs in \textbf{seconds per image} with NumPy
-\end{itemize}
-\end{exampleblock}
-
-\vspace{0.2cm}
-
-\begin{block}{Why RS Analysis for Cross-Domain?}
-\scriptsize
-Since RS Analysis uses no training data, any difference in $\hat{p}$ between real and ML-generated carriers is purely due to the carriers' statistical properties — \textbf{not classifier bias}. This makes it the cleanest test of our primary hypothesis.
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ---- SRM ----
-\begin{frame}{Phase 3.2: SRM + FLD Ensemble -- Algorithm}
-\begin{columns}[T]
-\begin{column}{0.52\textwidth}
-\begin{block}{SRM Feature Extraction [Fridrich \& Kodovský, 2012]}
-\scriptsize
-\begin{enumerate}
-\item \textbf{Apply} a bank of high-pass filters (e.g., 3$\times$3 SQUARE, EDGE kernels) to suppress image content and amplify residuals
-\item \textbf{Quantize} residuals to small integer values (truncation)
-\item \textbf{Compute} co-occurrence histograms from quantized residuals across multiple directions (horizontal, vertical, diagonal)
-\item \textbf{Concatenate} all histograms into a $\sim$35,000-dimensional feature vector per image
-\end{enumerate}
-
-\smallskip
-
-\textbf{Classification: Fisher Linear Discriminant (FLD) Ensemble}
-\begin{itemize}
-\item Train ensemble of binary FLD classifiers on feature subsets
-\item Aggregate predictions by majority vote
-\item Implementation: \texttt{sklearn.linear\_model.SGDClassifier}
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.44\textwidth}
-\begin{block}{Training Protocol}
-\scriptsize
-\begin{itemize}
-\item \textbf{Folds:} 3-fold cross-validation (stratified by source)
-\item \textbf{Input:} cover/stego image pairs
-\item \textbf{Labels:} 0 = cover, 1 = stego
-\item \textbf{Runtime:} $\sim$30 min total (CPU)
-\end{itemize}
-\end{block}
-
-\vspace{0.2cm}
-
-\begin{exampleblock}{Why SRM for Cross-Domain?}
-\scriptsize
-SRM's hand-crafted features are not tied to learned representations, making them \textbf{more likely to generalize} across real/ML domain boundary than neural networks would. Cross-domain conditions (C, D) test this directly.
-\end{exampleblock}
-
-\vspace{0.1cm}
-
-\begin{alertblock}{Compute}
-\scriptsize
-\textbf{No GPU required.} All feature extraction and classification runs on CPU. Total SRM training: $\sim$54 runs $\times$ $\sim$30 sec = \textbf{$<$30 min}.
-\end{alertblock}
-\end{column}
 \end{columns}
 \end{frame}
 
 % ============================================================
-% PHASE 4: EXPERIMENTS
-% ============================================================
-\section{Phase 4: Cross-Domain Experiments}
+\section{Training and Evaluation Logic}
 
-\begin{frame}{Phase 4: Cross-Domain Experimental Conditions}
-\begin{block}{Core Question [RQ4]}
-\scriptsize
-Do steganalysis classifiers trained on one domain (real or ML-generated images) generalize to the other?
-\end{block}
-
-\vspace{0.1cm}
-
-\centering
-\scriptsize
-\begin{tabular}{@{}clllp{4.8cm}@{}}
-\toprule
-\textbf{Cond.} & \textbf{Train} & \textbf{Test} & \textbf{Addresses} & \textbf{Research Significance} \\
-\midrule
-\textbf{A} & Real & Real & Baseline & Standard steganalysis benchmark \\
-\textbf{B} & ML-gen & ML-gen & Primary RQ & Is ML imagery easier/harder to steganalyze? \\
-\textbf{C} & Real & ML-gen & RQ4, H5 & Real-trained detectors vs.\ synthetic carriers \\
-\textbf{D} & ML-gen & Real & RQ4, H5 & ML-trained detectors vs.\ real images \\
-\midrule
-\textbf{E} & Mixed & Both & Mitigation & Domain-agnostic training \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.2cm}
-
+\begin{frame}{Grouped 5-Fold Strategy and Counts}
+\small
 \begin{columns}[T]
 \begin{column}{0.48\textwidth}
-\begin{alertblock}{Security Implication}
-\scriptsize
-If \textbf{C} shows poor performance, adversaries could evade real-world detectors simply by using ML-generated images as carriers.
-\end{alertblock}
+\begin{block}{Split rule}
+Split unit = \texttt{group\_id} (never individual image row)
+\end{block}
+\begin{itemize}
+\item 500 groups total
+\item Per fold: 100 test groups
+\item Remaining 400: 350 train + 50 validation
+\item Prevents leakage across real/ml\_a/ml\_b variants
+\end{itemize}
 \end{column}
 \begin{column}{0.48\textwidth}
-\begin{exampleblock}{Expected Outcome [H4]}
+\begin{block}{Per-method positives per fold}
 \scriptsize
-10--25\% AUC degradation in cross-domain conditions (C, D) vs.\ within-domain (A, B), paralleling findings in image deepfake detection [Wang et al., 2020].
-\end{exampleblock}
+Train: \(350 \times 3 \times 6 = 6{,}300\)\\
+Val: \(50 \times 3 \times 6 = 900\)\\
+Test: \(100 \times 3 \times 6 = 1{,}800\)
+\end{block}
+\begin{alertblock}{SRM training scope}
+\small
+Per-method SRM models:\\
+\texttt{lsb} model + \texttt{dct} model for each fold\\
+\(2 \times 5 = 10\) training runs.
+\end{alertblock}
 \end{column}
 \end{columns}
 \end{frame}
 
-% ---- Experiment Matrix ----
-\begin{frame}{Phase 4.1: Full Experiment Matrix}
-\vspace{0.1cm}
-\centering
+\begin{frame}{Detector Policy and Applicability}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Confirmatory detectors}
+\begin{itemize}
+\item SRM+EC (trained, per-method)
+\item RS (LSB domain)
+\item Block-DCT shift test (DCT domain)
+\end{itemize}
+\end{block}
+\begin{exampleblock}{Sensitivity-only}
+\small
+\(\chi^2\) for LSB branch diagnostics.
+\end{exampleblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Evaluation table key}
+\scriptsize
+\texttt{fold, detector, group\_id, source, method, payload\_level, encryption, label, score}
+\end{block}
+\begin{alertblock}{Aggregation levels}
+\small
+fold -> detector -> condition -> source -> pooled summaries with uncertainty intervals.
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Deferred Contracts}
+
+\begin{frame}[fragile]{Deferred Function Contracts (Closed-Loop)}
 \tiny
-\begin{tabular}{@{}lllllll@{}}
-\toprule
-\textbf{Detector} & \textbf{Training?} & \textbf{Method} & \textbf{Payload} & \textbf{Encryption} & \textbf{Condition} & \textbf{\# Runs} \\
-\midrule
-RS Analysis & None & LSB & Low, Med, High & Plain, AES & A--E (all) & $1\times3\times2\times5 = 30$ \\
-Chi-square & None & LSB & Low, Med, High & Plain, AES & A--E (all) & $30$ \\
-SRM + FLD & 3-fold CV & LSB & Low, Med, High & Plain, AES & A, B, C, D, E & $30$ \\
-SRM + FLD & 3-fold CV & DCT & Low, Med, High & Plain, AES & A, B, C, D, E & $30$ \\
-\midrule
-\multicolumn{6}{r}{\textbf{Total unique configurations:}} & \textbf{120} \\
-\multicolumn{6}{r}{\textbf{SRM training runs ($\times$3-fold):}} & \textbf{$\sim$54} \\
-\multicolumn{6}{r}{\textbf{RS / chi-square: no training}} & \textbf{0} \\
-\bottomrule
-\end{tabular}
+\begin{lstlisting}[language=Python]
+# Encryption
+encrypt_payload_aes_256_cbc(payload: bytes, key: bytes, iv: bytes) -> bytes
+decrypt_payload_aes_256_cbc(ciphertext: bytes, key: bytes, iv: bytes) -> bytes
 
-\vspace{0.25cm}
-
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{block}{Compute Estimate}
-\scriptsize
-\begin{itemize}
-\item RS Analysis \& chi-square: \textbf{seconds per image}, 0 training
-\item SRM: $\sim$30 sec/run $\times$ 54 runs $\approx$ \textbf{27 min total}
-\item Image generation (Wk 1): $\sim$4 h (M4 Pro, MPS)
-\item \textbf{Total detection compute: $<$1 hour}
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{block}{Experiment Tracking}
-\scriptsize
-\begin{itemize}
-\item CSV/JSON logs per configuration
-\item Columns: detector, method, payload, encryption, condition, AUC, EER, accuracy
-\item SRM: save FLD weights per fold for reproducibility
-\item No experiment tracking service needed (no GPU training)
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
-\end{frame}
-
-% ============================================================
-% PHASE 5: EVALUATION
-% ============================================================
-\section{Phase 5: Evaluation \& Analysis}
-
-\begin{frame}{Phase 5: Evaluation Metrics}
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{block}{Detection Performance (Primary)}
-\scriptsize
-\textbf{ROC-AUC} (primary)
-\begin{itemize}
-\item Area under ROC curve
-\item Threshold-independent; 0.5 = random, 1.0 = perfect
-\end{itemize}
-
-\smallskip
-
-\textbf{Accuracy} @ optimal threshold
-\begin{itemize}
-\item Percentage correct; threshold via Youden's J
-\end{itemize}
-
-\smallskip
-
-\textbf{EER} (Equal Error Rate)
-\begin{itemize}
-\item Point where FPR = FNR; lower is better
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{block}{Image Quality (Secondary)}
-\scriptsize
-\textbf{PSNR}
-\begin{itemize}
-\item Peak Signal-to-Noise Ratio (dB); higher is better
-\item Target: $>$ 40 dB for imperceptible embedding
-\end{itemize}
-
-\smallskip
-
-\textbf{SSIM}
-\begin{itemize}
-\item Structural Similarity Index; scale 0--1
-\item Captures luminance, contrast, structural changes
-\end{itemize}
-
-\smallskip
-
-\textbf{FSIM}
-\begin{itemize}
-\item Feature Similarity; based on phase congruency
-\end{itemize}
-\end{block}
-
-\vspace{0.1cm}
-
-\begin{alertblock}{\small Payload Integrity}
-\scriptsize
-\textbf{BER} = 0 expected for lossless PNG; non-zero indicates implementation error.
+# Embedding
+embed_lsb(cover_image: Image.Image, payload_bytes: bytes,
+          payload_level: str, prng_key: int) -> Image.Image
+embed_dct_qim(cover_image: Image.Image, payload_bytes: bytes,
+              payload_level: str, delta: float) -> Image.Image
+\end{lstlisting}
+\begin{alertblock}{Rule}
+{\scriptsize No reads/writes inside these functions. Runner supplies inputs and handles persistence.}
 \end{alertblock}
-\end{column}
-\end{columns}
 \end{frame}
 
-% ---- Statistical Analysis ----
-\begin{frame}{Phase 5.1: Statistical Analysis}
+\begin{frame}[fragile]{Deferred Function Contracts: Detection and SRM}
+\tiny
+\begin{lstlisting}[language=Python]
+# Statistical detectors
+rs_analysis_score(image: Image.Image) -> float
+chi_square_score(image: Image.Image) -> float
+block_dct_shift_score(image: Image.Image) -> float
+
+# SRM model API
+train_srm_ec_model(training_input: SRMTrainingInput) -> SRMModelArtifact
+score_srm_ec_model(model: SRMModelArtifact,
+                   x_samples: Sequence[Sequence[float]]) -> list[float]
+\end{lstlisting}
+\begin{alertblock}{Rule}
+{\scriptsize Input/output only. Model training/inference functions return artifacts/scores and do not perform persistence.}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{What Each Deferred Component Must Implement}
+\small
 \begin{columns}[T]
 \begin{column}{0.48\textwidth}
-\begin{block}{Two-Way ANOVA}
+\begin{block}{Encryption module}
 \scriptsize
-\textbf{Factors:}
-\begin{itemize}
-\item Carrier source (real vs.\ ML-gen)
-\item Embedding method (LSB vs.\ DCT)
-\end{itemize}
-
-\textbf{Covariates:} Payload rate, encryption
-
-\smallskip
-
-\textbf{Tests:}
-\begin{itemize}
-\item Main effect of carrier source (Primary RQ)
-\item Main effect of embedding method (RQ2)
-\item Interaction effect (source $\times$ method)
-\end{itemize}
-
-\smallskip
-
-\textbf{Significance:} $\alpha = 0.05$ with Bonferroni correction.
+Validate key/IV length, apply AES-256-CBC, return bytes; deterministic for fixed key+IV.
+\end{block}
+\begin{block}{LSB module}
+\scriptsize
+Map payload level to embedding intensity (k / pixel fraction), deterministic with \texttt{prng\_key}, return stego image.
+\end{block}
+\begin{block}{DCT module}
+\scriptsize
+Block DCT + QIM with \texttt{delta}; use payload-level coefficient fraction; return stego image.
 \end{block}
 \end{column}
-
 \begin{column}{0.48\textwidth}
-\begin{block}{Effect Size Analysis}
+\begin{block}{Statistical detectors}
 \scriptsize
-\textbf{Cohen's $d$}
-\begin{itemize}
-\item Standardized mean difference
-\item $|d| < 0.2$: negligible; $|d| \approx 0.5$: medium; $|d| > 0.8$: large
-\end{itemize}
-
-\smallskip
-
-\textbf{Why it matters:}\\
-Statistical significance $\neq$ practical significance. With multiple conditions, even small AUC differences may be significant.
+Consume one in-memory image, return scalar score calibrated for ROC/AUC ranking.
 \end{block}
-
-\vspace{0.1cm}
-
-\begin{exampleblock}{\small Hypothesis Testing}
+\begin{block}{SRM module}
 \scriptsize
-H4 predicts 10--25\% AUC drop in cross-domain. Test: $H_0$: AUC$_\text{cross}$ = AUC$_\text{within}$ vs.\ $H_1$: AUC$_\text{cross}$ $<$ AUC$_\text{within}$
+Train: feature vectors + labels -> model artifact\\
+Score: model artifact + feature vectors -> score vector
+\end{block}
+\begin{exampleblock}{Acceptance criteria}
+\scriptsize
+Shape checks, deterministic outputs under fixed seeds, no side effects, test coverage from contract tests.
 \end{exampleblock}
 \end{column}
 \end{columns}
 \end{frame}
 
-% ---- Visualizations ----
-\begin{frame}{Phase 5.2: Key Visualizations}
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{block}{1. ROC Curves by Condition}
-\scriptsize
-\begin{itemize}
-\item Overlay A, B, C, D, E on same plot
-\item Separate subplot per method (LSB/DCT)
-\item Show AUC in legend; highlight cross-domain gap
-\end{itemize}
-\end{block}
-
-\begin{block}{2. Heatmaps}
-\scriptsize
-\begin{itemize}
-\item AUC matrix: Carrier $\times$ Payload $\times$ Method
-\item Confusion matrices per condition
-\item Cross-domain performance drop visualization
-\end{itemize}
-\end{block}
-\end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{block}{3. Payload Sensitivity Curves}
-\scriptsize
-\begin{itemize}
-\item X: Payload rate (Low $\rightarrow$ High); Y: AUC
-\item Separate lines: Real vs.\ ML-gen
-\item Separate panels: LSB vs.\ DCT
-\item Shows divergence (H2) and method interaction (H3)
-\end{itemize}
-\end{block}
-
-\begin{block}{4. Image Quality Profiles}
-\scriptsize
-\begin{itemize}
-\item PSNR and SSIM vs.\ payload rate
-\item Separate lines: Real vs.\ ML-gen carriers
-\item Visual examples: cover / stego side-by-side
-\end{itemize}
-\end{block}
-\end{column}
-\end{columns}
-
-\vspace{0.15cm}
-
-\centering
-{\scriptsize\color{umgray}\textbf{Tools:} Matplotlib, Seaborn, scikit-image, piq}
-\end{frame}
-
 % ============================================================
-% SUMMARY
-% ============================================================
-\section{Summary}
+\section{Quality and Verification}
 
-\begin{frame}{Implementation Summary}
-\centering
-\tiny
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}p{0.8cm}p{2.8cm}p{3.5cm}p{3.5cm}@{}}
-\toprule
-\textbf{Phase} & \textbf{Deliverable} & \textbf{Key Steps} & \textbf{Success Criteria} \\
-\midrule
-\textbf{1} & 1,000 images (500 real + 500 ML) & Collect RAISE/COCO; Generate SD/StyleGAN3; normalize to 512$\times$512 PNG & BRISQUE $<$ 50; all same format \\
-\textbf{2} & 12,000 stego images & LSB + DCT at 3 levels $\times$ plain/AES & PSNR $>$ 40 dB, BER = 0 \\
-\textbf{3} & Detection results & RS Analysis + chi-square (no training); SRM 3-fold CV (CPU) & AUC $>$ 0.7 within-domain \\
-\textbf{4} & 120 configs & Run A--E conditions; log all metrics & All configs evaluated \\
-\textbf{5} & Analysis + paper & ANOVA; visualizations; effect sizes & Publication-ready \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.25cm}
-
+\begin{frame}{Testing Strategy Implemented in Repository}
+\small
 \begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\begin{block}{Key References}
-\scriptsize
+\begin{column}{0.49\textwidth}
+\begin{block}{Test layers}
 \begin{itemize}
-\item Chi-square: Westfeld \& Pfitzmann (1999)
-\item RS Analysis: Fridrich et al.\ (2001)
-\item SRM: Fridrich \& Kodovský (2012)
-\item Stable Diffusion: Rombach et al.\ (2022)
-\item StyleGAN3: Karras et al.\ (2021)
+\item Contract/unit tests (naming, path layout, image standardization)
+\item Stage integration tests (payload/stego/split/job generation)
+\item Blueprint integrity tests (cardinality, completeness, leakage)
+\item CLI tests (command routing and path resolution)
+\item Deferred-function contract tests (closed-loop signatures)
 \end{itemize}
 \end{block}
 \end{column}
-
-\begin{column}{0.48\textwidth}
-\begin{alertblock}{Critical Path}
-\scriptsize
-\begin{enumerate}
-\item Week 1: Dataset collection + generation
-\item Week 2: Embedding pipeline (LSB + DCT + AES)
-\item Weeks 3--4: RS Analysis + SRM detection (CPU, fast)
-\item Week 5: Cross-domain experiments + analysis
-\item Weeks 6--7: Statistics, visualizations + writing
-\end{enumerate}
+\begin{column}{0.47\textwidth}
+\begin{alertblock}{Current status}
+\small
+\texttt{pytest} passing for the full suite.
 \end{alertblock}
+\begin{exampleblock}{What tests enforce}
+\scriptsize
+\begin{itemize}
+\item 500 groups, 1,500 covers, 18,000 stegos contracts
+\item exactly 12 stegos per cover
+\item grouped split disjointness and coverage
+\item no absolute local paths in manifests
+\end{itemize}
+\end{exampleblock}
 \end{column}
 \end{columns}
 \end{frame}
 
-% ============================================================
-% CLOSING
-% ============================================================
+\begin{frame}{Implementation Checklist for Collaborators}
+\small
+\begin{enumerate}
+\item Fill deferred closed-loop functions in:
+\texttt{src/embedding/*.py}, \texttt{src/detection/*.py}
+\item Keep function signatures and return types unchanged.
+\item Use runner-driven manifests for all inputs/outputs (no ad hoc file writes).
+\item Generate \texttt{ml\_a}/\texttt{ml\_b} covers from \texttt{generation\_prompts.csv}.
+\item Merge real+ML into final \texttt{covers\_master.csv}.
+\item Run pipeline stages and produce predictions/metrics artifacts.
+\item Validate all invariants with test suite before analysis.
+\end{enumerate}
+
+\begin{alertblock}{Definition of done for implementation}
+All manifests complete, all stego artifacts generated, all detector scores exported, fold-level and aggregated metrics reproducible.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Takeaway}
+\small
+\begin{block}{What is now solid}
+\begin{itemize}
+\item A decision-complete pipeline blueprint tied to concrete code modules
+\item Deterministic artifact contracts and grouped CV strategy
+\item Closed-loop deferred APIs with explicit boundaries
+\item Test scaffolding that guides remaining implementation work
+\end{itemize}
+\end{block}
+
+\begin{exampleblock}{Next milestone}
+Implement deferred algorithms and run full experiment matrix to answer RQ1--RQ5 with fold-wise uncertainty and source/method/payload/encryption contrasts.
+\end{exampleblock}
+\end{frame}
+
 \begin{frame}[plain]
 \vfill
 \begin{center}
-{\color{umorange}\rule{0.3\textwidth}{2pt}}\\[16pt]
-{\LARGE\bfseries\color{umdark}Implementation Guide Complete}\\[10pt]
-{\large\color{umgray}Ready to Begin Phase 1}\\[20pt]
-{\small\color{umgray}Questions?}\\[16pt]
-{\color{umorange}\rule{0.3\textwidth}{2pt}}
+{\Large\bfseries\color{umdark}Thank You}\\[8pt]
+{\normalsize\color{umgray}Implementation discussion and task assignment}
 \end{center}
 \vfill
 \end{frame}
