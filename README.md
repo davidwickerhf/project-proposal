@@ -312,20 +312,7 @@ Before claiming pipeline completion:
 
 ## To Do List
 
-### Completed
-- [x] Locked pipeline blueprint documented in README (cardinalities, naming, manifests, splits).
-- [x] Core pipeline scaffolding implemented (`config`, `runner`, `cli`, contracts, manifest/image utilities).
-- [x] Grouped 5-fold split generation implemented with locked counts.
-- [x] SRM per-method training-job manifest generation implemented (`2 x 5 = 10` jobs).
-- [x] Real-image downloader implemented for COCO/Flickr30k with caption filtering and deterministic sampling.
-- [x] Real dataset artifacts generated (`500` real covers: `300` COCO + `200` Flickr30k).
-- [x] Metadata path portability fixed (project-relative paths in manifests, Git-safe).
-- [x] Deferred function contracts formalized as closed-loop APIs (in-memory input/output, no file I/O).
-- [x] Comprehensive test suite implemented (unit, integration, integrity, CLI, contract).
-- [x] Behavior-spec tests added for deferred algorithms (`xfail` until implementations exist).
-- [x] Implementation slideshow created in midway style with end-to-end technical coverage.
-
-### Pending
+### Priority Pending Work
 - [ ] Implement `encrypt_payload_aes_256_cbc` and `decrypt_payload_aes_256_cbc` with validation and deterministic behavior.
 - [ ] Implement `embed_lsb` according to payload-level policy and deterministic PRNG ordering.
 - [ ] Implement `embed_dct_qim` with payload-level coefficient policy and deterministic behavior.
@@ -337,3 +324,8 @@ Before claiming pipeline completion:
 - [ ] Add detector execution pipeline to produce prediction tables under `results/predictions/`.
 - [ ] Add metrics computation/aggregation pipeline to produce fold, condition, source, and quality outputs.
 - [ ] Generate final analysis figures/tables that explicitly answer RQ1–RQ5.
+
+### Current Foundation Status (Brief)
+- [x] Pipeline structure, manifest contracts, and grouped split scaffolding are in place.
+- [x] Real-image set and prompt manifest are prepared.
+- [x] Test scaffolding exists to guide the remaining implementations.
