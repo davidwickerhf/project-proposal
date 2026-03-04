@@ -28,6 +28,7 @@ def test_cli_init_layout(monkeypatch, capsys, tmp_path: Path) -> None:
     assert "Layout initialized" in out
     assert (tmp_path / "data" / "covers" / "real").is_dir()
     assert (tmp_path / "results" / "metrics").is_dir()
+    assert (tmp_path / "results" / "figures").is_dir()
 
 
 def test_cli_build_training_jobs(monkeypatch, capsys, tmp_path: Path) -> None:
@@ -256,3 +257,122 @@ def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
     assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()
     assert (tmp_path / "results" / "metrics" / "condition_metrics.csv").exists()
     assert (tmp_path / "results" / "metrics" / "source_contrasts.csv").exists()
+
+
+def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
+    import pytest
+
+    pytest.importorskip("matplotlib")
+
+    metrics_dir = tmp_path / "results" / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+
+    write_rows_csv(
+        metrics_dir / "source_contrasts.csv",
+        rows=[
+            {
+                "fold": "0",
+                "detector": "rs",
+                "source": "real",
+                "n_samples": "2",
+                "n_pos": "1",
+                "n_neg": "1",
+                "roc_auc": "0.75",
+                "eer": "0.2",
+                "accuracy_at_youden_j": "0.8",
+                "fpr_at_fixed_fnr": "0.1",
+            }
+        ],
+        fieldnames=[
+            "fold",
+            "detector",
+            "source",
+            "n_samples",
+            "n_pos",
+            "n_neg",
+            "roc_auc",
+            "eer",
+            "accuracy_at_youden_j",
+            "fpr_at_fixed_fnr",
+        ],
+    )
+    write_rows_csv(
+        metrics_dir / "condition_metrics.csv",
+        rows=[
+            {
+                "fold": "0",
+                "detector": "rs",
+                "method": "lsb",
+                "payload_level": "low",
+                "encryption": "plain",
+                "n_samples": "2",
+                "n_pos": "1",
+                "n_neg": "1",
+                "roc_auc": "0.75",
+                "eer": "0.2",
+                "accuracy_at_youden_j": "0.8",
+                "fpr_at_fixed_fnr": "0.1",
+            }
+        ],
+        fieldnames=[
+            "fold",
+            "detector",
+            "method",
+            "payload_level",
+            "encryption",
+            "n_samples",
+            "n_pos",
+            "n_neg",
+            "roc_auc",
+            "eer",
+            "accuracy_at_youden_j",
+            "fpr_at_fixed_fnr",
+        ],
+    )
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "prog",
+            "--project-root",
+            str(tmp_path),
+            "plot-metrics",
+        ],
+    )
+    main()
+    out = capsys.readouterr().out
+
+    assert "AUC by source figure" in out
+    assert (tmp_path / "results" / "figures" / "auc_by_source_detector.png").exists()
+    assert (tmp_path / "results" / "figures" / "auc_by_method_detector.png").exists()
+
+
+def test_cli_run_all_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
+    covers_manifest = write_cover_manifest(
+        tmp_path / "data" / "manifests" / "covers_master.csv",
+        group_ids=range(1, 501),
+    )
+    assert covers_manifest.exists()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "prog",
+            "--project-root",
+            str(tmp_path),
+            "run-all",
+            "--covers-manifest",
+            "data/manifests/covers_master.csv",
+            "--disable-srm",
+        ],
+    )
+    main()
+    out = capsys.readouterr().out
+
+    assert "Embedding rows processed: 18000" in out
+    assert (tmp_path / "data" / "manifests" / "payload_manifest.csv").exists()
+    assert (tmp_path / "data" / "manifests" / "stego_manifest.csv").exists()
+    assert (tmp_path / "results" / "splits" / "splits_grouped5fold.json").exists()
+    assert (tmp_path / "results" / "splits" / "srm_training_jobs.csv").exists()
+    assert (tmp_path / "results" / "predictions" / "predictions.csv").exists()
+    assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()

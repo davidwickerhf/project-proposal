@@ -112,7 +112,8 @@ data/
 results/
 ├── predictions/
 ├── metrics/
-└── splits/
+├── splits/
+└── figures/
 ```
 
 Filename contract:
@@ -192,6 +193,10 @@ python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifes
 # 4) Detection + aggregation
 python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
 python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
+python3 -m src.pipeline.cli --project-root . plot-metrics
+
+# One-command orchestration (same stages as above)
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --generate-figures
 ```
 
 Execution notes:
@@ -200,6 +205,7 @@ Execution notes:
 - Adding `--execute` invokes embedding placeholders and will fail until those functions are implemented.
 - Adding `--execute` to `run-detectors` invokes detector placeholders and will fail until those functions are implemented.
 - `build-payload-manifest --write-files` will invoke encryption placeholder for encrypted payloads.
+- `run-all` is dry-run by default for embedding/detectors. Use `--execute-embeddings --execute-detectors` only after deferred functions are implemented.
 
 ### 7) Deferred Function Specifications
 
@@ -373,6 +379,16 @@ python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data
 # Metrics stage
 python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
 python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv --quality-metrics-input results/metrics/quality_input.csv
+
+# Figure stage
+python3 -m src.pipeline.cli --project-root . plot-metrics
+python3 -m src.pipeline.cli --project-root . plot-metrics --metrics-dir results/metrics --figures-dir results/figures
+
+# Full orchestration in one command
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --generate-figures
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --execute-embeddings --execute-detectors --generate-figures
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --execute-embeddings --execute-detectors --disable-srm --skip-unimplemented --generate-figures
 ```
 
 ## To Do List

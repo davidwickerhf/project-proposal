@@ -43,6 +43,7 @@ from src.evaluation.metrics import (
     summarize_fold_mean_interval,
     try_parse_score,
 )
+from src.evaluation.plots import generate_metrics_figures
 from src.evaluation.splits import FoldSplit, generate_grouped_5fold_splits
 from src.pipeline.config import PipelineConfig
 
@@ -591,6 +592,88 @@ class PipelineRunner:
             "pooled_summary": pooled_path,
             "quality_metrics": quality_path,
         }
+
+    def generate_metrics_figures(
+        self,
+        metrics_dir: Path | None = None,
+        figures_dir: Path | None = None,
+    ) -> dict[str, Path]:
+        """Generate core metric figures from metrics CSV outputs."""
+        resolved_metrics_dir = self._resolve_manifest_path(metrics_dir or self.paths.metrics_dir)
+        resolved_figures_dir = self._resolve_manifest_path(
+            figures_dir or self.paths.figures_dir
+        )
+        return generate_metrics_figures(
+            metrics_dir=resolved_metrics_dir,
+            figures_dir=resolved_figures_dir,
+        )
+
+    def run_full_pipeline(
+        self,
+        *,
+        covers_manifest_path: Path,
+        execute_embeddings: bool = False,
+        execute_detectors: bool = False,
+        include_srm: bool = True,
+        skip_unimplemented: bool = False,
+        quality_metrics_input: Path | None = None,
+        generate_figures: bool = False,
+    ) -> dict[str, Path | int]:
+        """Run all non-deferred pipeline stages in sequence.
+
+        This orchestration covers:
+        - payload manifest generation
+        - stego manifest generation
+        - grouped split generation
+        - SRM training job expansion
+        - embedding stage execution/dry-run
+        - detector stage execution/dry-run
+        - metrics aggregation
+        - optional figure generation
+        """
+        self.init_layout()
+
+        resolved_covers = self._resolve_manifest_path(covers_manifest_path)
+        payload_manifest = self.build_payload_manifest(
+            covers_manifest_path=resolved_covers,
+            write_payload_files=execute_embeddings,
+        )
+        stego_manifest = self.build_stego_manifest(
+            covers_manifest_path=resolved_covers,
+            payload_manifest_path=payload_manifest,
+        )
+        splits_json = self.create_grouped_splits(covers_manifest_path=resolved_covers)
+        training_jobs = self.build_srm_training_jobs(splits_json_path=splits_json)
+        embedding_rows = self.run_embedding_stage(
+            stego_manifest_path=stego_manifest,
+            execute=execute_embeddings,
+        )
+        predictions = self.run_detector_stage(
+            stego_manifest_path=stego_manifest,
+            splits_json_path=splits_json,
+            execute=execute_detectors,
+            include_srm=include_srm,
+            skip_unimplemented=skip_unimplemented,
+        )
+        metrics_outputs = self.compute_metrics_from_predictions(
+            predictions_path=predictions,
+            quality_metrics_input=quality_metrics_input,
+        )
+
+        out: dict[str, Path | int] = {
+            "payload_manifest": payload_manifest,
+            "stego_manifest": stego_manifest,
+            "splits_json": splits_json,
+            "training_jobs": training_jobs,
+            "predictions": predictions,
+            "embedding_rows_processed": embedding_rows,
+        }
+        out.update(metrics_outputs)
+
+        if generate_figures:
+            out.update(self.generate_metrics_figures())
+
+        return out
 
     def _generate_payload_bytes(self, payload_bits: int, rng: random.Random) -> bytes:
         """Generate deterministic pseudo-random payload bytes for one condition row."""

@@ -14,10 +14,6 @@
 *.blg
 *.toc
 
-# Data files (too large for git)
-data/covers/**/*.png
-data/stego/**/*.png
-
 # Python
 __pycache__/
 *.pyc

@@ -20,6 +20,9 @@ This `src/` tree is the implementation scaffold for the full project pipeline.
 5. Create grouped 5-fold split (`create-splits`).
 6. Build SRM training job manifest (`build-training-jobs`).
 7. Run embedding stage (`run-embedding-stage` dry-run or execute).
+8. Run detector stage (`run-detectors` dry-run or execute).
+9. Aggregate metrics (`compute-metrics`).
+10. Generate figures (`plot-metrics`) or run all stages via `run-all`.
 
 ## Design Rules
 

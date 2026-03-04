@@ -15,6 +15,10 @@
     - `create_grouped_splits`
     - `build_srm_training_jobs`
     - `run_embedding_stage`
+    - `run_detector_stage`
+    - `compute_metrics_from_predictions`
+    - `generate_metrics_figures`
+    - `run_full_pipeline`
 - `cli.py`
   - command-line wrappers around runner stages
 
@@ -29,6 +33,8 @@
 - `run_embedding_stage`: execute or dry-run embedding manifest rows.
 - `run_detector_stage`: generate prediction table rows (folded, condition-aware).
 - `compute_metrics_from_predictions`: aggregate metrics by fold/condition/source.
+- `generate_metrics_figures`: generate AUC figures from metric tables.
+- `run_full_pipeline`: orchestrate full experiment flow in one command.
 
 ## Closed-Loop Boundaries
 
@@ -48,7 +54,10 @@ python3 -m src.pipeline.cli --project-root . build-training-jobs --splits-json r
 python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
 python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
 python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
+python3 -m src.pipeline.cli --project-root . plot-metrics
+python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/manifests/covers_master.csv --generate-figures
 ```
 
 `run-embedding-stage` is dry-run by default. Add `--execute` only after embedding functions are implemented.
 `run-detectors` is also dry-run by default. Add `--execute` only after detector functions are implemented.
+`run-all` is dry-run for embedding/detectors by default; add `--execute-embeddings --execute-detectors` only when deferred methods are implemented.

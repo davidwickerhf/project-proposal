@@ -117,6 +117,60 @@ def _parser() -> argparse.ArgumentParser:
         required=False,
         help="Optional precomputed quality metrics CSV to copy into results/metrics.",
     )
+
+    p_plot = sub.add_parser(
+        "plot-metrics",
+        help="Generate metrics figures (AUC by source and by method).",
+    )
+    p_plot.add_argument(
+        "--metrics-dir",
+        type=Path,
+        required=False,
+        help="Optional metrics directory (defaults to results/metrics).",
+    )
+    p_plot.add_argument(
+        "--figures-dir",
+        type=Path,
+        required=False,
+        help="Optional figures output directory (defaults to results/figures).",
+    )
+
+    p_all = sub.add_parser(
+        "run-all",
+        help="Run full pipeline orchestration in one command.",
+    )
+    p_all.add_argument("--covers-manifest", type=Path, required=True)
+    p_all.add_argument(
+        "--execute-embeddings",
+        action="store_true",
+        help="Execute embedding functions (disabled by default).",
+    )
+    p_all.add_argument(
+        "--execute-detectors",
+        action="store_true",
+        help="Execute detector functions (disabled by default).",
+    )
+    p_all.add_argument(
+        "--disable-srm",
+        action="store_true",
+        help="Exclude SRM detector rows from execution/output.",
+    )
+    p_all.add_argument(
+        "--skip-unimplemented",
+        action="store_true",
+        help="Skip deferred functions that raise NotImplementedError.",
+    )
+    p_all.add_argument(
+        "--quality-metrics-input",
+        type=Path,
+        required=False,
+        help="Optional precomputed quality metrics CSV to copy into results/metrics.",
+    )
+    p_all.add_argument(
+        "--generate-figures",
+        action="store_true",
+        help="Generate summary AUC figures after metric aggregation.",
+    )
     return parser
 
 
@@ -186,6 +240,45 @@ def main() -> None:
         print(f"Source contrasts CSV: {out['source_contrasts']}")
         print(f"Pooled summary CSV: {out['pooled_summary']}")
         print(f"Quality metrics CSV: {out['quality_metrics']}")
+    elif args.command == "plot-metrics":
+        out = runner.generate_metrics_figures(
+            metrics_dir=(
+                _resolve_path(args.metrics_dir, project_root) if args.metrics_dir else None
+            ),
+            figures_dir=(
+                _resolve_path(args.figures_dir, project_root) if args.figures_dir else None
+            ),
+        )
+        print(f"AUC by source figure: {out['auc_by_source_detector']}")
+        print(f"AUC by method figure: {out['auc_by_method_detector']}")
+    elif args.command == "run-all":
+        out = runner.run_full_pipeline(
+            covers_manifest_path=_resolve_path(args.covers_manifest, project_root),
+            execute_embeddings=args.execute_embeddings,
+            execute_detectors=args.execute_detectors,
+            include_srm=not args.disable_srm,
+            skip_unimplemented=args.skip_unimplemented,
+            quality_metrics_input=(
+                _resolve_path(args.quality_metrics_input, project_root)
+                if args.quality_metrics_input
+                else None
+            ),
+            generate_figures=args.generate_figures,
+        )
+        print(f"Payload manifest: {out['payload_manifest']}")
+        print(f"Stego manifest: {out['stego_manifest']}")
+        print(f"Splits JSON: {out['splits_json']}")
+        print(f"Training jobs CSV: {out['training_jobs']}")
+        print(f"Embedding rows processed: {out['embedding_rows_processed']}")
+        print(f"Predictions CSV: {out['predictions']}")
+        print(f"Fold metrics CSV: {out['fold_metrics']}")
+        print(f"Condition metrics CSV: {out['condition_metrics']}")
+        print(f"Source contrasts CSV: {out['source_contrasts']}")
+        print(f"Pooled summary CSV: {out['pooled_summary']}")
+        print(f"Quality metrics CSV: {out['quality_metrics']}")
+        if args.generate_figures:
+            print(f"AUC by source figure: {out['auc_by_source_detector']}")
+            print(f"AUC by method figure: {out['auc_by_method_detector']}")
     else:
         raise ValueError(f"Unhandled command: {args.command}")
 

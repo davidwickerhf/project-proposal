@@ -24,6 +24,7 @@ class PipelinePaths:
     splits_dir: Path
     predictions_dir: Path
     metrics_dir: Path
+    figures_dir: Path
 
     @classmethod
     def from_project_root(cls, project_root: Path) -> "PipelinePaths":
@@ -37,6 +38,7 @@ class PipelinePaths:
             splits_dir=results_root / "splits",
             predictions_dir=results_root / "predictions",
             metrics_dir=results_root / "metrics",
+            figures_dir=results_root / "figures",
         )
 
     def covers_dir(self, source: Source) -> Path:
@@ -99,6 +101,7 @@ class PipelinePaths:
         self.splits_dir.mkdir(parents=True, exist_ok=True)
         self.predictions_dir.mkdir(parents=True, exist_ok=True)
         self.metrics_dir.mkdir(parents=True, exist_ok=True)
+        self.figures_dir.mkdir(parents=True, exist_ok=True)
 
 
 def cover_filename(group_id: int, source: Source) -> str:
