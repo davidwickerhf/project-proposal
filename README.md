@@ -8,13 +8,29 @@ Comparative study of steganographic detectability on real vs ML-generated image 
 
 ## Quick Links
 
-- Midway proposal (final, LaTeX): [docs/proposals/midway_proposal_final.tex](docs/proposals/midway_proposal_final.tex)
 - Midway proposal (final, PDF): [docs/proposals/midway_proposal_final.pdf](docs/proposals/midway_proposal_final.pdf)
-- Midway proposal slides (full, LaTeX): [docs/slides/midway_proposal_slides.tex](docs/slides/midway_proposal_slides.tex)
 - Midway proposal slides (full, PDF): [docs/slides/midway_proposal_slides.pdf](docs/slides/midway_proposal_slides.pdf)
 - Implementation slides (PDF): [docs/slides/implementation_slides.pdf](docs/slides/implementation_slides.pdf)
-- Midway proposal slides (5 min, LaTeX): [docs/slides/midway_proposal_slides_5min.tex](docs/slides/midway_proposal_slides_5min.tex)
-- Midway proposal slides (5 min, PDF): [docs/slides/midway_proposal_slides_5min.pdf](docs/slides/midway_proposal_slides_5min.pdf)
+
+## Table of Contents
+
+- [Quick Links](#quick-links)
+- [Repository Structure](#repository-structure)
+- [Technical Implementation Plan](#technical-implementation-plan)
+- [1) Project Scope and Locked Design](#1-project-scope-and-locked-design)
+- [2) Repository Implementation Status](#2-repository-implementation-status)
+- [3) Data Contracts for Collaborators](#3-data-contracts-for-collaborators)
+- [4) Required Manifest Schemas](#4-required-manifest-schemas)
+- [5) Input Needed to Populate Covers](#5-input-needed-to-populate-covers)
+- [6) End-to-End Runbook](#6-end-to-end-runbook)
+- [7) Deferred Function Specifications](#7-deferred-function-specifications)
+- [8) Training and Fold Logic](#8-training-and-fold-logic)
+- [9) Detector Execution Policy](#9-detector-execution-policy)
+- [10) Analysis Workflow After Pipeline Completion](#10-analysis-workflow-after-pipeline-completion)
+- [11) Recommended Final-Report AUC Figures](#11-recommended-final-report-auc-figures)
+- [12) Multi-Run Workflow](#12-multi-run-workflow)
+- [13) Validation and Integrity Checklist](#13-validation-and-integrity-checklist)
+- [To Do List](#to-do-list)
 
 ## Repository Structure
 
@@ -28,6 +44,8 @@ project-proposal/
 │   └── slides/
 │       ├── midway_proposal_slides.tex
 │       ├── midway_proposal_slides.pdf
+│       ├── implementation_slides.tex
+│       ├── implementation_slides.pdf
 │       ├── midway_proposal_slides_5min.tex
 │       └── midway_proposal_slides_5min.pdf
 ├── src/
@@ -291,3 +309,31 @@ Before claiming pipeline completion:
 - Detector applicability rules are enforced.
 - SRM jobs equal `10` total (`2 methods x 5 folds`).
 - Manifests include seeds and parameter snapshots for reproducibility.
+
+## To Do List
+
+### Completed
+- [x] Locked pipeline blueprint documented in README (cardinalities, naming, manifests, splits).
+- [x] Core pipeline scaffolding implemented (`config`, `runner`, `cli`, contracts, manifest/image utilities).
+- [x] Grouped 5-fold split generation implemented with locked counts.
+- [x] SRM per-method training-job manifest generation implemented (`2 x 5 = 10` jobs).
+- [x] Real-image downloader implemented for COCO/Flickr30k with caption filtering and deterministic sampling.
+- [x] Real dataset artifacts generated (`500` real covers: `300` COCO + `200` Flickr30k).
+- [x] Metadata path portability fixed (project-relative paths in manifests, Git-safe).
+- [x] Deferred function contracts formalized as closed-loop APIs (in-memory input/output, no file I/O).
+- [x] Comprehensive test suite implemented (unit, integration, integrity, CLI, contract).
+- [x] Behavior-spec tests added for deferred algorithms (`xfail` until implementations exist).
+- [x] Implementation slideshow created in midway style with end-to-end technical coverage.
+
+### Pending
+- [ ] Implement `encrypt_payload_aes_256_cbc` and `decrypt_payload_aes_256_cbc` with validation and deterministic behavior.
+- [ ] Implement `embed_lsb` according to payload-level policy and deterministic PRNG ordering.
+- [ ] Implement `embed_dct_qim` with payload-level coefficient policy and deterministic behavior.
+- [ ] Implement statistical detectors: `rs_analysis_score`, `chi_square_score`, `block_dct_shift_score`.
+- [ ] Implement SRM functions: `train_srm_ec_model` and `score_srm_ec_model`.
+- [ ] Generate ML cover sets (`ml_a` via SDXL and `ml_b` via PixArt-alpha) from `generation_prompts.csv`.
+- [ ] Merge real + ML into final `data/manifests/covers_master.csv` (`1,500` covers total).
+- [ ] Materialize payload binaries and stego images end-to-end for full matrix (`18,000` stegos).
+- [ ] Add detector execution pipeline to produce prediction tables under `results/predictions/`.
+- [ ] Add metrics computation/aggregation pipeline to produce fold, condition, source, and quality outputs.
+- [ ] Generate final analysis figures/tables that explicitly answer RQ1–RQ5.
