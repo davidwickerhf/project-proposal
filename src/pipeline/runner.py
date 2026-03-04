@@ -15,6 +15,7 @@ import json
 import secrets
 from pathlib import Path
 import random
+from typing import Callable
 
 from src.common.contracts import ENCRYPTION_STATES, METHODS, PAYLOAD_LEVELS
 from src.data.manifests import (
@@ -25,12 +26,23 @@ from src.data.manifests import (
     read_rows_csv,
     unique_group_ids,
     write_dataclass_csv,
+    write_rows_csv,
     write_json,
 )
-from src.data.images import standardize_and_save
+from src.data.images import load_image, standardize_and_save
+from src.detection.statistical import (
+    block_dct_shift_score,
+    chi_square_score,
+    rs_analysis_score,
+)
 from src.embedding.dct import embed_dct_qim
 from src.embedding.encryption import encrypt_payload_aes_256_cbc
 from src.embedding.lsb import embed_lsb
+from src.evaluation.metrics import (
+    aggregate_by_groups,
+    summarize_fold_mean_interval,
+    try_parse_score,
+)
 from src.evaluation.splits import FoldSplit, generate_grouped_5fold_splits
 from src.pipeline.config import PipelineConfig
 
@@ -65,6 +77,21 @@ class PipelineRunner:
         except ValueError:
             # If a path is outside project root, keep absolute path as fallback.
             return str(path)
+
+    def _load_folds(self, splits_json_path: Path) -> list[FoldSplit]:
+        obj = json.loads(self._resolve_manifest_path(splits_json_path).read_text(encoding="utf-8"))
+        return [FoldSplit(**fold) for fold in obj["folds"]]
+
+    def _detectors_for_method(self, method: str, include_srm: bool) -> list[str]:
+        if method == "lsb":
+            detectors = ["rs", "chi_square"]
+        elif method == "dct":
+            detectors = ["block_dct_shift"]
+        else:
+            raise ValueError(f"Unknown method: {method}")
+        if include_srm:
+            detectors.insert(0, "srm_ec")
+        return detectors
 
     def standardize_covers_from_index(
         self,
@@ -289,7 +316,7 @@ class PipelineRunner:
             return len(rows)
 
         # This stage intentionally calls placeholder methods.
-        from src.data.images import load_image, save_png
+        from src.data.images import save_png
 
         for row in rows:
             # Runner handles file I/O; embedding functions stay closed-loop.
@@ -315,6 +342,255 @@ class PipelineRunner:
                 raise ValueError(f"Unknown method: {method}")
             save_png(stego, self._resolve_manifest_path(row["stego_path"]))
         return len(rows)
+
+    def run_detector_stage(
+        self,
+        stego_manifest_path: Path,
+        splits_json_path: Path,
+        output_path: Path | None = None,
+        *,
+        execute: bool = False,
+        include_srm: bool = True,
+        skip_unimplemented: bool = False,
+        srm_score_provider: Callable[[dict[str, str]], float] | None = None,
+    ) -> Path:
+        """Run detector scoring on fold test partitions and write predictions CSV.
+
+        Output schema:
+        fold, detector, group_id, source, method, payload_level, encryption, label, score
+
+        Notes:
+        - Positives are stego rows (label=1).
+        - Negatives are matched cover rows per stego condition (label=0).
+        - With execute=False, score values are left empty as a dry-run plan.
+        """
+        stego_rows = read_rows_csv(stego_manifest_path)
+        folds = self._load_folds(splits_json_path)
+
+        pred_rows: list[dict[str, object]] = []
+        for fold in folds:
+            test_groups = set(fold.test_group_ids)
+            for row in stego_rows:
+                group_id = int(row["group_id"])
+                if group_id not in test_groups:
+                    continue
+
+                method = row["method"]
+                detectors = self._detectors_for_method(method, include_srm=include_srm)
+
+                for detector in detectors:
+                    # Positive row (stego image).
+                    pos_score = ""
+                    if execute:
+                        try:
+                            pos_score = self._score_detector_row(
+                                detector=detector,
+                                label=1,
+                                row=row,
+                                srm_score_provider=srm_score_provider,
+                            )
+                        except NotImplementedError:
+                            if skip_unimplemented:
+                                continue
+                            raise
+
+                    pred_rows.append(
+                        {
+                            "fold": fold.fold,
+                            "detector": detector,
+                            "group_id": group_id,
+                            "source": row["source"],
+                            "method": method,
+                            "payload_level": row["payload_level"],
+                            "encryption": row["encryption"],
+                            "label": 1,
+                            "score": pos_score,
+                        }
+                    )
+
+                    # Matched negative row (cover image under same condition key).
+                    neg_score = ""
+                    if execute:
+                        try:
+                            neg_score = self._score_detector_row(
+                                detector=detector,
+                                label=0,
+                                row=row,
+                                srm_score_provider=srm_score_provider,
+                            )
+                        except NotImplementedError:
+                            if skip_unimplemented:
+                                # Remove positive row written above to keep label balance for this detector.
+                                pred_rows.pop()
+                                continue
+                            raise
+
+                    pred_rows.append(
+                        {
+                            "fold": fold.fold,
+                            "detector": detector,
+                            "group_id": group_id,
+                            "source": row["source"],
+                            "method": method,
+                            "payload_level": row["payload_level"],
+                            "encryption": row["encryption"],
+                            "label": 0,
+                            "score": neg_score,
+                        }
+                    )
+
+        out = output_path or (self.paths.predictions_dir / "predictions.csv")
+        write_rows_csv(
+            out,
+            pred_rows,
+            fieldnames=[
+                "fold",
+                "detector",
+                "group_id",
+                "source",
+                "method",
+                "payload_level",
+                "encryption",
+                "label",
+                "score",
+            ],
+        )
+        return out
+
+    def compute_metrics_from_predictions(
+        self,
+        predictions_path: Path,
+        metrics_dir: Path | None = None,
+        quality_metrics_input: Path | None = None,
+    ) -> dict[str, Path]:
+        """Compute fold/condition/source metrics from detector prediction rows.
+
+        This stage computes:
+        - fold_metrics.csv
+        - condition_metrics.csv
+        - source_contrasts.csv
+        - pooled_summary.csv
+        - quality_metrics.csv (copied from input, or empty scaffold file)
+        """
+        rows = read_rows_csv(predictions_path)
+        # Keep only rows with numeric scores for metric calculations.
+        scored_rows = [r for r in rows if try_parse_score(r.get("score", "")) is not None]
+
+        out_dir = metrics_dir or self.paths.metrics_dir
+        out_dir = self._resolve_manifest_path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        fold_metrics = aggregate_by_groups(scored_rows, ["fold", "detector"])
+        condition_metrics = aggregate_by_groups(
+            scored_rows, ["fold", "detector", "method", "payload_level", "encryption"]
+        )
+        source_metrics = aggregate_by_groups(scored_rows, ["fold", "detector", "source"])
+        pooled_summary = summarize_fold_mean_interval(
+            source_metrics,
+            metric_key="roc_auc",
+            group_keys_excluding_fold=["detector", "source"],
+        )
+
+        fold_path = out_dir / "fold_metrics.csv"
+        condition_path = out_dir / "condition_metrics.csv"
+        source_path = out_dir / "source_contrasts.csv"
+        pooled_path = out_dir / "pooled_summary.csv"
+        quality_path = out_dir / "quality_metrics.csv"
+
+        write_rows_csv(
+            fold_path,
+            fold_metrics,
+            fieldnames=[
+                "fold",
+                "detector",
+                "n_samples",
+                "n_pos",
+                "n_neg",
+                "roc_auc",
+                "eer",
+                "accuracy_at_youden_j",
+                "fpr_at_fixed_fnr",
+            ],
+        )
+        write_rows_csv(
+            condition_path,
+            condition_metrics,
+            fieldnames=[
+                "fold",
+                "detector",
+                "method",
+                "payload_level",
+                "encryption",
+                "n_samples",
+                "n_pos",
+                "n_neg",
+                "roc_auc",
+                "eer",
+                "accuracy_at_youden_j",
+                "fpr_at_fixed_fnr",
+            ],
+        )
+        write_rows_csv(
+            source_path,
+            source_metrics,
+            fieldnames=[
+                "fold",
+                "detector",
+                "source",
+                "n_samples",
+                "n_pos",
+                "n_neg",
+                "roc_auc",
+                "eer",
+                "accuracy_at_youden_j",
+                "fpr_at_fixed_fnr",
+            ],
+        )
+        write_rows_csv(
+            pooled_path,
+            pooled_summary,
+            fieldnames=["detector", "source", "roc_auc_mean", "roc_auc_std", "n_folds"],
+        )
+
+        if quality_metrics_input is not None:
+            in_path = self._resolve_manifest_path(quality_metrics_input)
+            write_rows_csv(
+                quality_path,
+                read_rows_csv(in_path),
+                fieldnames=[
+                    "group_id",
+                    "source",
+                    "method",
+                    "payload_level",
+                    "encryption",
+                    "psnr",
+                    "ssim",
+                    "fsim",
+                ],
+            )
+        else:
+            write_rows_csv(
+                quality_path,
+                [],
+                fieldnames=[
+                    "group_id",
+                    "source",
+                    "method",
+                    "payload_level",
+                    "encryption",
+                    "psnr",
+                    "ssim",
+                    "fsim",
+                ],
+            )
+
+        return {
+            "fold_metrics": fold_path,
+            "condition_metrics": condition_path,
+            "source_contrasts": source_path,
+            "pooled_summary": pooled_path,
+            "quality_metrics": quality_path,
+        }
 
     def _generate_payload_bytes(self, payload_bits: int, rng: random.Random) -> bytes:
         """Generate deterministic pseudo-random payload bytes for one condition row."""
@@ -347,3 +623,29 @@ class PipelineRunner:
         else:
             raise ValueError(f"Unknown method: {method}")
         return json.dumps(params, sort_keys=True)
+
+    def _score_detector_row(
+        self,
+        *,
+        detector: str,
+        label: int,
+        row: dict[str, str],
+        srm_score_provider: Callable[[dict[str, str]], float] | None,
+    ) -> float:
+        """Score one detector on either stego (label=1) or cover (label=0) image."""
+        image_path_key = "stego_path" if label == 1 else "cover_path"
+        image = load_image(self._resolve_manifest_path(row[image_path_key]))
+
+        if detector == "rs":
+            return rs_analysis_score(image)
+        if detector == "chi_square":
+            return chi_square_score(image)
+        if detector == "block_dct_shift":
+            return block_dct_shift_score(image)
+        if detector == "srm_ec":
+            if srm_score_provider is None:
+                raise NotImplementedError(
+                    "SRM score provider is not wired yet. Supply srm_score_provider or disable SRM."
+                )
+            return float(srm_score_provider(row))
+        raise ValueError(f"Unknown detector: {detector}")

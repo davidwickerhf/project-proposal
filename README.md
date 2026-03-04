@@ -30,6 +30,7 @@ Comparative study of steganographic detectability on real vs ML-generated image 
 - [11) Recommended Final-Report AUC Figures](#11-recommended-final-report-auc-figures)
 - [12) Multi-Run Workflow](#12-multi-run-workflow)
 - [13) Validation and Integrity Checklist](#13-validation-and-integrity-checklist)
+- [14) CLI Command Reference](#14-cli-command-reference)
 - [To Do List](#to-do-list)
 
 ## Repository Structure
@@ -168,18 +169,36 @@ The pipeline reads `raw_image_path`, standardizes to canonical PNG, and writes `
 Run from repo root:
 
 ```bash
+# Install dependencies
+python3 -m pip install -r requirements.txt
+
+# 0) Build real covers and prompts (already done once in this repo)
+python3 -m src.data.download_real_covers --project-root .
+
+# 1) Generate ML covers from generation prompts
+python3 -m src.data.generate_ml_covers --project-root . --prompts-csv data/manifests/generation_prompts.csv --engine diffusers
+
+# 2) Merge real + ml_a + ml_b into final covers_master.csv
+python3 -m src.data.merge_covers_master --project-root . --real-manifest data/manifests/covers_master_real.csv --ml-a-manifest data/manifests/covers_master_ml_a.csv --ml-b-manifest data/manifests/covers_master_ml_b.csv --output-manifest data/manifests/covers_master.csv --expected-groups 500
+
+# 3) Pipeline stages
 python3 -m src.pipeline.cli --project-root . init-layout
-python3 -m src.pipeline.cli --project-root . standardize-covers --input-index <raw_cover_index.csv>
 python3 -m src.pipeline.cli --project-root . build-payload-manifest --covers-manifest data/manifests/covers_master.csv
 python3 -m src.pipeline.cli --project-root . build-stego-manifest --covers-manifest data/manifests/covers_master.csv --payload-manifest data/manifests/payload_manifest.csv
 python3 -m src.pipeline.cli --project-root . create-splits --covers-manifest data/manifests/covers_master.csv
 python3 -m src.pipeline.cli --project-root . build-training-jobs --splits-json results/splits/splits_grouped5fold.json
 python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
+
+# 4) Detection + aggregation
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
 ```
 
 Execution notes:
 - `run-embedding-stage` is dry-run by default (counts rows).
+- `run-detectors` is dry-run by default (writes planned prediction rows with empty scores).
 - Adding `--execute` invokes embedding placeholders and will fail until those functions are implemented.
+- Adding `--execute` to `run-detectors` invokes detector placeholders and will fail until those functions are implemented.
 - `build-payload-manifest --write-files` will invoke encryption placeholder for encrypted payloads.
 
 ### 7) Deferred Function Specifications
@@ -310,6 +329,52 @@ Before claiming pipeline completion:
 - SRM jobs equal `10` total (`2 methods x 5 folds`).
 - Manifests include seeds and parameter snapshots for reproducibility.
 
+### 14) CLI Command Reference
+
+Data scripts:
+
+```bash
+# Download real covers + prompt manifest
+python3 -m src.data.download_real_covers --project-root .
+
+# Generate ML covers (SDXL for ml_a, PixArt-alpha for ml_b)
+python3 -m src.data.generate_ml_covers --project-root . --prompts-csv data/manifests/generation_prompts.csv --engine diffusers
+
+# Generate ML covers in deterministic stub mode (fast smoke runs)
+python3 -m src.data.generate_ml_covers --project-root . --prompts-csv data/manifests/generation_prompts.csv --engine stub --max-groups 25
+
+# Merge source manifests into final covers_master.csv
+python3 -m src.data.merge_covers_master --project-root . --real-manifest data/manifests/covers_master_real.csv --ml-a-manifest data/manifests/covers_master_ml_a.csv --ml-b-manifest data/manifests/covers_master_ml_b.csv --output-manifest data/manifests/covers_master.csv --expected-groups 500
+```
+
+Pipeline CLI (`src.pipeline.cli`) subcommands:
+
+```bash
+# Setup
+python3 -m src.pipeline.cli --project-root . init-layout
+python3 -m src.pipeline.cli --project-root . standardize-covers --input-index data/manifests/raw_cover_index_real.csv
+
+# Manifest planning/build
+python3 -m src.pipeline.cli --project-root . build-payload-manifest --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-payload-manifest --covers-manifest data/manifests/covers_master.csv --write-files
+python3 -m src.pipeline.cli --project-root . build-stego-manifest --covers-manifest data/manifests/covers_master.csv --payload-manifest data/manifests/payload_manifest.csv
+python3 -m src.pipeline.cli --project-root . create-splits --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-training-jobs --splits-json results/splits/splits_grouped5fold.json
+
+# Embedding stage
+python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
+python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv --execute
+
+# Detector stage
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json --execute
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json --disable-srm --skip-unimplemented
+
+# Metrics stage
+python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
+python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv --quality-metrics-input results/metrics/quality_input.csv
+```
+
 ## To Do List
 
 ### Priority Pending Work
@@ -318,11 +383,11 @@ Before claiming pipeline completion:
 - [ ] Implement `embed_dct_qim` with payload-level coefficient policy and deterministic behavior.
 - [ ] Implement statistical detectors: `rs_analysis_score`, `chi_square_score`, `block_dct_shift_score`.
 - [ ] Implement SRM functions: `train_srm_ec_model` and `score_srm_ec_model`.
-- [ ] Generate ML cover sets (`ml_a` via SDXL and `ml_b` via PixArt-alpha) from `generation_prompts.csv`.
-- [ ] Merge real + ML into final `data/manifests/covers_master.csv` (`1,500` covers total).
+- [ ] Run ML cover generation with real models (`ml_a` via SDXL and `ml_b` via PixArt-alpha) from `generation_prompts.csv`.
+- [ ] Run real+ML merge to produce final `data/manifests/covers_master.csv` (`1,500` covers total).
 - [ ] Materialize payload binaries and stego images end-to-end for full matrix (`18,000` stegos).
-- [ ] Add detector execution pipeline to produce prediction tables under `results/predictions/`.
-- [ ] Add metrics computation/aggregation pipeline to produce fold, condition, source, and quality outputs.
+- [ ] Execute detector stage to produce populated prediction tables under `results/predictions/`.
+- [ ] Execute metrics stage and validate fold/condition/source outputs under `results/metrics/`.
 - [ ] Generate final analysis figures/tables that explicitly answer RQ1–RQ5.
 
 ### Current Foundation Status (Brief)

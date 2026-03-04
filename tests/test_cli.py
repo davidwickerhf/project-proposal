@@ -133,3 +133,126 @@ def test_cli_create_splits(monkeypatch, capsys, tmp_path: Path) -> None:
 
     assert "Splits JSON" in out
     assert (tmp_path / "results" / "splits" / "splits_grouped5fold.json").exists()
+
+
+def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
+    stego_manifest = tmp_path / "data" / "manifests" / "stego_manifest.csv"
+    write_rows_csv(
+        stego_manifest,
+        rows=[
+            {
+                "group_id": "1",
+                "source": "real",
+                "method": "lsb",
+                "payload_level": "low",
+                "encryption": "plain",
+                "cover_path": "data/covers/real/g0001__src-real.png",
+                "payload_path": "data/payloads/plain/low/g0001__p-low__e-plain.bin",
+                "stego_path": "data/stego/lsb/low/plain/real/g0001__src-real__m-lsb__p-low__e-plain.png",
+                "embed_params": "{}",
+                "seed": "42",
+            }
+        ],
+        fieldnames=STEGO_FIELDNAMES,
+    )
+
+    splits_json = tmp_path / "results" / "splits" / "splits_grouped5fold.json"
+    splits_json.parent.mkdir(parents=True, exist_ok=True)
+    splits_json.write_text(
+        json.dumps(
+            {
+                "protocol": "grouped-5fold",
+                "group_unit": "group_id",
+                "folds": [
+                    {
+                        "fold": 0,
+                        "train_group_ids": [],
+                        "val_group_ids": [],
+                        "test_group_ids": [1],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "prog",
+            "--project-root",
+            str(tmp_path),
+            "run-detectors",
+            "--stego-manifest",
+            "data/manifests/stego_manifest.csv",
+            "--splits-json",
+            "results/splits/splits_grouped5fold.json",
+            "--disable-srm",
+        ],
+    )
+    main()
+    out = capsys.readouterr().out
+
+    assert "Predictions CSV" in out
+    assert (tmp_path / "results" / "predictions" / "predictions.csv").exists()
+
+
+def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
+    predictions = tmp_path / "results" / "predictions" / "predictions.csv"
+    write_rows_csv(
+        predictions,
+        rows=[
+            {
+                "fold": "0",
+                "detector": "rs",
+                "group_id": "1",
+                "source": "real",
+                "method": "lsb",
+                "payload_level": "low",
+                "encryption": "plain",
+                "label": "0",
+                "score": "0.1",
+            },
+            {
+                "fold": "0",
+                "detector": "rs",
+                "group_id": "1",
+                "source": "real",
+                "method": "lsb",
+                "payload_level": "low",
+                "encryption": "plain",
+                "label": "1",
+                "score": "0.9",
+            },
+        ],
+        fieldnames=[
+            "fold",
+            "detector",
+            "group_id",
+            "source",
+            "method",
+            "payload_level",
+            "encryption",
+            "label",
+            "score",
+        ],
+    )
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "prog",
+            "--project-root",
+            str(tmp_path),
+            "compute-metrics",
+            "--predictions",
+            "results/predictions/predictions.csv",
+        ],
+    )
+    main()
+    out = capsys.readouterr().out
+
+    assert "Fold metrics CSV" in out
+    assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()
+    assert (tmp_path / "results" / "metrics" / "condition_metrics.csv").exists()
+    assert (tmp_path / "results" / "metrics" / "source_contrasts.csv").exists()

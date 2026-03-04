@@ -27,6 +27,8 @@
 - `create_grouped_splits`: build grouped fold partitions.
 - `build_srm_training_jobs`: define per-method SRM training jobs per fold.
 - `run_embedding_stage`: execute or dry-run embedding manifest rows.
+- `run_detector_stage`: generate prediction table rows (folded, condition-aware).
+- `compute_metrics_from_predictions`: aggregate metrics by fold/condition/source.
 
 ## Closed-Loop Boundaries
 
@@ -44,6 +46,9 @@ python3 -m src.pipeline.cli --project-root . build-stego-manifest --covers-manif
 python3 -m src.pipeline.cli --project-root . create-splits --covers-manifest data/manifests/covers_master.csv
 python3 -m src.pipeline.cli --project-root . build-training-jobs --splits-json results/splits/splits_grouped5fold.json
 python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
 ```
 
 `run-embedding-stage` is dry-run by default. Add `--execute` only after embedding functions are implemented.
+`run-detectors` is also dry-run by default. Add `--execute` only after detector functions are implemented.

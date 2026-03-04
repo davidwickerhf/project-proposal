@@ -83,6 +83,40 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Actually invoke embedding placeholders; default is dry-run count only.",
     )
+
+    p_det = sub.add_parser(
+        "run-detectors",
+        help="Run detector stage on test folds and write prediction table.",
+    )
+    p_det.add_argument("--stego-manifest", type=Path, required=True)
+    p_det.add_argument("--splits-json", type=Path, required=True)
+    p_det.add_argument(
+        "--execute",
+        action="store_true",
+        help="Actually invoke detector functions; default writes dry-run rows with empty scores.",
+    )
+    p_det.add_argument(
+        "--disable-srm",
+        action="store_true",
+        help="Exclude SRM detector rows from execution/output.",
+    )
+    p_det.add_argument(
+        "--skip-unimplemented",
+        action="store_true",
+        help="Skip detectors that raise NotImplementedError instead of failing.",
+    )
+
+    p_metrics = sub.add_parser(
+        "compute-metrics",
+        help="Aggregate detector predictions into fold/condition/source metric tables.",
+    )
+    p_metrics.add_argument("--predictions", type=Path, required=True)
+    p_metrics.add_argument(
+        "--quality-metrics-input",
+        type=Path,
+        required=False,
+        help="Optional precomputed quality metrics CSV to copy into results/metrics.",
+    )
     return parser
 
 
@@ -129,6 +163,29 @@ def main() -> None:
             execute=args.execute,
         )
         print(f"Embedding rows processed: {n}")
+    elif args.command == "run-detectors":
+        out = runner.run_detector_stage(
+            stego_manifest_path=_resolve_path(args.stego_manifest, project_root),
+            splits_json_path=_resolve_path(args.splits_json, project_root),
+            execute=args.execute,
+            include_srm=not args.disable_srm,
+            skip_unimplemented=args.skip_unimplemented,
+        )
+        print(f"Predictions CSV: {out}")
+    elif args.command == "compute-metrics":
+        out = runner.compute_metrics_from_predictions(
+            predictions_path=_resolve_path(args.predictions, project_root),
+            quality_metrics_input=(
+                _resolve_path(args.quality_metrics_input, project_root)
+                if args.quality_metrics_input
+                else None
+            ),
+        )
+        print(f"Fold metrics CSV: {out['fold_metrics']}")
+        print(f"Condition metrics CSV: {out['condition_metrics']}")
+        print(f"Source contrasts CSV: {out['source_contrasts']}")
+        print(f"Pooled summary CSV: {out['pooled_summary']}")
+        print(f"Quality metrics CSV: {out['quality_metrics']}")
     else:
         raise ValueError(f"Unhandled command: {args.command}")
 
