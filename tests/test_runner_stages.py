@@ -55,13 +55,14 @@ def test_standardize_covers_from_index_writes_outputs(project_root: Path, runner
     covers = read_rows_csv(out)
 
     assert len(covers) == 6
-    first_path = Path(covers[0]["image_path"])
+    first_path = project_root / covers[0]["image_path"]
     assert first_path.exists()
 
     from src.data.images import load_image
 
     standardized = load_image(first_path)
     assert standardized.size == (512, 512)
+    assert not Path(covers[0]["image_path"]).is_absolute()
 
 
 def test_create_grouped_splits_and_training_jobs_locked_design(project_root: Path) -> None:
@@ -92,6 +93,7 @@ def test_create_grouped_splits_and_training_jobs_locked_design(project_root: Pat
     assert {j["train_samples"] for j in jobs} == {"6300"}
     assert {j["val_samples"] for j in jobs} == {"900"}
     assert {j["test_samples"] for j in jobs} == {"1800"}
+    assert all(not Path(j["split_ref"]).is_absolute() for j in jobs)
 
 
 def test_build_payload_manifest_validates_group_count(project_root: Path, runner: PipelineRunner) -> None:

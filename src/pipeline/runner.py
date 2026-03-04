@@ -38,6 +38,17 @@ class PipelineRunner:
     def init_layout(self) -> None:
         self.paths.ensure_layout()
 
+    def _resolve_manifest_path(self, value: str | Path) -> Path:
+        path = Path(value)
+        return path if path.is_absolute() else (self.config.project_root / path)
+
+    def _to_project_relative(self, value: Path | str) -> str:
+        path = self._resolve_manifest_path(value)
+        try:
+            return str(path.relative_to(self.config.project_root))
+        except ValueError:
+            return str(path)
+
     def standardize_covers_from_index(
         self,
         input_index_csv: Path,
@@ -56,7 +67,7 @@ class PipelineRunner:
             source = row["source"]
             out_path = self.paths.cover_path(group_id, source)  # type: ignore[arg-type]
             standardize_and_save(
-                input_path=Path(row["raw_image_path"]),
+                input_path=self._resolve_manifest_path(row["raw_image_path"]),
                 output_path=out_path,
                 size=self.config.image_size,
             )
@@ -68,7 +79,7 @@ class PipelineRunner:
                     orig_id=row["orig_id"],
                     caption_id=row["caption_id"],
                     caption_text=row["caption_text"],
-                    image_path=str(out_path),
+                    image_path=self._to_project_relative(out_path),
                     qc_pass=row["qc_pass"].lower() == "true",
                     qc_score=float(row["qc_score"]),
                     seed=int(row["seed"]),
@@ -117,7 +128,7 @@ class PipelineRunner:
                             group_id=group_id,
                             payload_level=payload_level,
                             encryption=encryption,
-                            payload_path=str(payload_path),
+                            payload_path=self._to_project_relative(payload_path),
                             payload_bits=payload_bits,
                             aes_iv=iv.hex(),
                             aes_key_id=self.config.aes_key_id,
@@ -147,11 +158,12 @@ class PipelineRunner:
         for cover in cover_rows:
             group_id = int(cover["group_id"])
             source = cover["source"]
-            cover_path = cover["image_path"]
+            cover_path = self._to_project_relative(cover["image_path"])
             for method in METHODS:
                 for payload_level in PAYLOAD_LEVELS:
                     for encryption in ENCRYPTION_STATES:
                         payload_row = payload_index[(group_id, payload_level, encryption)]
+                        payload_path = self._to_project_relative(payload_row["payload_path"])
                         stego_path = self.paths.stego_path(
                             group_id=group_id,
                             source=source,  # type: ignore[arg-type]
@@ -168,8 +180,8 @@ class PipelineRunner:
                                 payload_level=payload_level,
                                 encryption=encryption,
                                 cover_path=cover_path,
-                                payload_path=payload_row["payload_path"],
-                                stego_path=str(stego_path),
+                                payload_path=payload_path,
+                                stego_path=self._to_project_relative(stego_path),
                                 embed_params=embed_params,
                                 seed=self.config.embed_seed,
                             )
@@ -224,7 +236,7 @@ class PipelineRunner:
                         train_samples=train_groups * 3 * 6,
                         val_samples=val_groups * 3 * 6,
                         test_samples=test_groups * 3 * 6,
-                        split_ref=str(splits_json_path),
+                        split_ref=self._to_project_relative(splits_json_path),
                     )
                 )
 
@@ -249,8 +261,8 @@ class PipelineRunner:
         from src.data.images import load_image, save_png
 
         for row in rows:
-            cover_image = load_image(Path(row["cover_path"]))
-            payload_bytes = Path(row["payload_path"]).read_bytes()
+            cover_image = load_image(self._resolve_manifest_path(row["cover_path"]))
+            payload_bytes = self._resolve_manifest_path(row["payload_path"]).read_bytes()
             method = row["method"]
             payload_level = row["payload_level"]
             if method == "lsb":
@@ -269,7 +281,7 @@ class PipelineRunner:
                 )
             else:
                 raise ValueError(f"Unknown method: {method}")
-            save_png(stego, Path(row["stego_path"]))
+            save_png(stego, self._resolve_manifest_path(row["stego_path"]))
         return len(rows)
 
     def _generate_payload_bytes(self, payload_bits: int, rng: random.Random) -> bytes:

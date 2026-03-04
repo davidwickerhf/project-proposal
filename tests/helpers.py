@@ -49,9 +49,7 @@ def write_cover_manifest(path: Path, group_ids: Iterable[int]) -> Path:
                     "orig_id": f"orig-{group_id}-{source}",
                     "caption_id": f"cap-{group_id}",
                     "caption_text": f"caption {group_id}",
-                    "image_path": str(
-                        path.parent / "data" / "covers" / source / f"g{group_id:04d}__src-{source}.png"
-                    ),
+                    "image_path": f"data/covers/{source}/g{group_id:04d}__src-{source}.png",
                     "qc_pass": "true",
                     "qc_score": "0.99",
                     "seed": "42",

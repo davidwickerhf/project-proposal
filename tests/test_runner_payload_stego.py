@@ -31,6 +31,7 @@ def test_build_payload_manifest_cardinality_and_fields(
 
     sample = rows[0]
     assert sample["payload_path"].endswith(".bin")
+    assert not Path(sample["payload_path"]).is_absolute()
 
 
 def test_build_payload_manifest_with_file_writes_hits_encryption_placeholder(
@@ -71,6 +72,9 @@ def test_build_stego_manifest_cardinality_and_condition_completeness(
     assert {r["method"] for r in rows} == {"lsb", "dct"}
     assert {r["payload_level"] for r in rows} == {"low", "medium", "high"}
     assert {r["encryption"] for r in rows} == {"plain", "encrypted"}
+    assert all(not Path(r["cover_path"]).is_absolute() for r in rows)
+    assert all(not Path(r["payload_path"]).is_absolute() for r in rows)
+    assert all(not Path(r["stego_path"]).is_absolute() for r in rows)
 
 
 def test_run_embedding_stage_dry_run_counts_rows(project_root: Path, small_runner) -> None:
