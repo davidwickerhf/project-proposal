@@ -7,6 +7,7 @@
 - `srm.py`
   - `SRMTrainingInput` (in-memory train/val payload)
   - `SRMModelArtifact` (in-memory trained model payload)
+  - `extract_srm_features(image) -> list[float]`
   - `train_srm_ec_model(training_input) -> SRMModelArtifact`
   - `score_srm_ec_model(model, x_samples) -> list[float]`
 - `statistical.py`

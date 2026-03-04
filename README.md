@@ -104,6 +104,9 @@ Deferred functions (intentionally not implemented yet):
 - `src/detection/statistical.py`
 - `src/detection/srm.py`
 
+Deferred function count:
+- `10` total (`2` encryption + `2` embedding + `3` statistical + `3` SRM).
+
 ### 3) Data Contracts for Collaborators
 
 Directory contract:
@@ -248,6 +251,11 @@ Contract rule for all deferred functions:
 - Side effects: none.
 - Applicability: `RS`/`chi-square` for LSB branch, `block_dct_shift` for DCT branch.
 
+`extract_srm_features(image: PIL.Image.Image) -> list[float]`
+- Input: in-memory image.
+- Output: SRM feature vector as list of floats.
+- Side effects: none.
+
 `train_srm_ec_model(training_input: SRMTrainingInput) -> SRMModelArtifact`
 - Input: one method/fold in-memory train/validation feature-label split.
 - Output: in-memory trained model artifact.
@@ -297,6 +305,10 @@ Sensitivity-only detector:
 Applicability:
 - LSB rows: `SRM+EC`, `RS`, `chi-square`
 - DCT rows: `SRM+EC`, `Block-DCT shift test`
+
+SRM execution wiring:
+- If `run-detectors` runs with `--execute` and SRM enabled (default), and no external `srm_score_provider` is supplied, the runner auto-trains SRM models per `(fold, method)` using train/val partitions and applies them on test rows.
+- If deferred SRM methods are not implemented yet, use `--skip-unimplemented` (and optionally `--disable-srm`) for graceful execution.
 
 ### 10) Analysis Workflow After Pipeline Completion
 
@@ -450,6 +462,7 @@ Execution modes:
 - [ ] Implement `embed_lsb` according to payload-level policy and deterministic PRNG ordering.
 - [ ] Implement `embed_dct_qim` with payload-level coefficient policy and deterministic behavior.
 - [ ] Implement statistical detectors: `rs_analysis_score`, `chi_square_score`, `block_dct_shift_score`.
+- [ ] Implement SRM feature extraction: `extract_srm_features`.
 - [ ] Implement SRM functions: `train_srm_ec_model` and `score_srm_ec_model`.
 - [ ] Run ML cover generation with real models (`ml_a` via SDXL and `ml_b` via PixArt-alpha) from `generation_prompts.csv`.
 - [ ] Run real+ML merge to produce final `data/manifests/covers_master.csv` (`1,500` covers total).

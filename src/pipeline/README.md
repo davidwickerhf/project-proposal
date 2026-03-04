@@ -39,6 +39,7 @@
 ## Closed-Loop Boundaries
 
 - Deferred algorithm functions (encryption, embedding, statistical detectors, SRM train/score) must be pure in-memory functions.
+- Deferred algorithm functions (encryption, embedding, statistical detectors, SRM feature/train/score) must be pure in-memory functions.
 - Those functions must not read/write files directly.
 - `pipeline/runner.py` owns all artifact I/O and converts between manifest paths and in-memory inputs.
 
@@ -60,4 +61,5 @@ python3 -m src.pipeline.cli --project-root . run-all --covers-manifest data/mani
 
 `run-embedding-stage` is dry-run by default. Add `--execute` only after embedding functions are implemented.
 `run-detectors` is also dry-run by default. Add `--execute` only after detector functions are implemented.
+When `run-detectors --execute` runs with SRM enabled and no external SRM score callback, the runner auto-trains SRM models per `(fold, method)` from train/val partitions before test scoring.
 `run-all` is dry-run for embedding/detectors by default; add `--execute-embeddings --execute-detectors` only when deferred methods are implemented.

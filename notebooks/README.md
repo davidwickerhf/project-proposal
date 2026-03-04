@@ -48,7 +48,7 @@ jupyter lab
 - Main actions:
   - creates grouped 5-fold splits
   - builds per-method SRM training jobs (10 total)
-  - defines the fold/method training-call pattern for deferred SRM functions
+  - defines SRM feature extraction + fold/method training-call pattern for deferred SRM functions
 - Typical outputs:
   - `results/splits/splits_grouped5fold.json`
   - `results/splits/srm_training_jobs.csv`
@@ -60,6 +60,7 @@ jupyter lab
   - runs `PipelineRunner.run_full_pipeline(...)`
   - computes metrics and optionally generates figures
   - displays output paths and key cardinality checks
+  - supports SRM auto-train path during detector execution
 - Typical outputs:
   - `results/predictions/predictions.csv`
   - `results/metrics/*.csv`
@@ -82,7 +83,10 @@ jupyter lab
   - ML generation with `engine='diffusers'`
   - enable embedding execution
   - enable detector execution
-  - enable SRM training/inference calls
+  - enable SRM feature extraction/training/inference calls
+
+SRM auto-training behavior:
+- In executable detector mode (`execute=True`, SRM enabled), the runner auto-trains SRM models per `(fold, method)` if no external SRM score provider is supplied.
 
 ## Notes for Collaborators
 
