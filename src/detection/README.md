@@ -5,12 +5,20 @@
 ## Files
 
 - `srm.py`
-  - SRM+EC training and scoring entrypoints
-  - per-method, per-fold model execution
+  - `SRMTrainingInput` (in-memory train/val payload)
+  - `SRMModelArtifact` (in-memory trained model payload)
+  - `train_srm_ec_model(training_input) -> SRMModelArtifact`
+  - `score_srm_ec_model(model, x_samples) -> list[float]`
 - `statistical.py`
-  - `rs_analysis_score(image_path) -> float`
-  - `chi_square_score(image_path) -> float`
-  - `block_dct_shift_score(image_path) -> float`
+  - `rs_analysis_score(image: PIL.Image.Image) -> float`
+  - `chi_square_score(image: PIL.Image.Image) -> float`
+  - `block_dct_shift_score(image: PIL.Image.Image) -> float`
+
+Closed-loop contract (all deferred detection functions):
+- Inputs are in-memory artifacts only (feature matrices, labels, model object, images).
+- Outputs are scores/model artifacts only.
+- No direct file reads/writes inside detectors.
+- Pipeline/orchestrator layers own all disk I/O.
 
 ## Detector Policy
 

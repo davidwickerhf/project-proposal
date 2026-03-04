@@ -28,6 +28,12 @@
 - `build_srm_training_jobs`: define per-method SRM training jobs per fold.
 - `run_embedding_stage`: execute or dry-run embedding manifest rows.
 
+## Closed-Loop Boundaries
+
+- Deferred algorithm functions (encryption, embedding, statistical detectors, SRM train/score) must be pure in-memory functions.
+- Those functions must not read/write files directly.
+- `pipeline/runner.py` owns all artifact I/O and converts between manifest paths and in-memory inputs.
+
 ## CLI Commands
 
 ```bash

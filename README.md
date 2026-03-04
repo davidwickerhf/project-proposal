@@ -165,31 +165,48 @@ Execution notes:
 
 ### 7) Deferred Function Specifications
 
+Contract rule for all deferred functions:
+- Closed-loop only: receive in-memory inputs, return in-memory outputs.
+- No file reads/writes inside these functions.
+- Pipeline runner handles all disk I/O and manifest coordination.
+
 `encrypt_payload_aes_256_cbc(payload: bytes, key: bytes, iv: bytes) -> bytes`
-- Input: raw payload bytes, 32-byte key, 16-byte IV.
-- Output: encrypted payload bytes for storage.
-- Must be deterministic under fixed key+IV.
+- Input: plaintext payload bytes, 32-byte key, 16-byte IV.
+- Output: ciphertext bytes.
+- Side effects: none.
 
-`embed_lsb(cover_image, payload_bytes, payload_level, prng_key) -> Image`
-- Input: canonical cover image + payload bytes.
-- Output: stego image preserving canonical format constraints.
-- Must honor payload levels (`low`, `medium`, `high`) exactly as locked in docs.
+`decrypt_payload_aes_256_cbc(ciphertext: bytes, key: bytes, iv: bytes) -> bytes`
+- Input: ciphertext bytes, matching key/IV.
+- Output: plaintext bytes.
+- Side effects: none.
 
-`embed_dct_qim(cover_image, payload_bytes, payload_level, delta) -> Image`
-- Input: canonical cover image + payload bytes.
-- Output: stego image with DCT-QIM embedding.
-- Must use consistent payload-level policy and deterministic behavior under fixed seeds.
+`embed_lsb(cover_image: PIL.Image.Image, payload_bytes: bytes, payload_level: str, prng_key: int) -> PIL.Image.Image`
+- Input: canonical cover image and payload bytes.
+- Output: stego image in memory.
+- Side effects: none.
 
-`rs_analysis_score(image_path) -> float`
-`chi_square_score(image_path) -> float`
-`block_dct_shift_score(image_path) -> float`
-- Return scalar scores usable for ROC/AUC.
-- `RS` and `chi-square` apply to LSB branch only.
-- `block_dct_shift` applies to DCT branch only.
+`embed_dct_qim(cover_image: PIL.Image.Image, payload_bytes: bytes, payload_level: str, delta: float) -> PIL.Image.Image`
+- Input: canonical cover image and payload bytes.
+- Output: stego image in memory.
+- Side effects: none.
 
-`train_srm_ec_model(method, fold)` / `score_srm_ec_model(method, fold)`
-- SRM+EC train/infer interfaces.
-- Must support per-method training (`lsb` and `dct`) per fold.
+`rs_analysis_score(image: PIL.Image.Image) -> float`
+`chi_square_score(image: PIL.Image.Image) -> float`
+`block_dct_shift_score(image: PIL.Image.Image) -> float`
+- Input: in-memory image.
+- Output: scalar detector score.
+- Side effects: none.
+- Applicability: `RS`/`chi-square` for LSB branch, `block_dct_shift` for DCT branch.
+
+`train_srm_ec_model(training_input: SRMTrainingInput) -> SRMModelArtifact`
+- Input: one method/fold in-memory train/validation feature-label split.
+- Output: in-memory trained model artifact.
+- Side effects: none.
+
+`score_srm_ec_model(model: SRMModelArtifact, x_samples: Sequence[Sequence[float]]) -> list[float]`
+- Input: trained in-memory model + in-memory feature rows.
+- Output: one score per sample.
+- Side effects: none.
 
 ### 8) Training and Fold Logic
 

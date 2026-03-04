@@ -2,7 +2,7 @@
 
 `embedding/` implements payload transformation and stego generation.
 
-## Deferred Files
+## Deferred Files and Contracts
 
 - `encryption.py`
   - `encrypt_payload_aes_256_cbc(payload, key, iv) -> bytes`
@@ -11,6 +11,11 @@
   - `embed_lsb(cover_image, payload_bytes, payload_level, prng_key) -> Image`
 - `dct.py`
   - `embed_dct_qim(cover_image, payload_bytes, payload_level, delta) -> Image`
+
+Closed-loop contract (all deferred functions):
+- Inputs are in-memory objects only (`bytes`, `PIL.Image.Image`, scalars).
+- Outputs are return values only (no hidden writes).
+- No direct file reads/writes inside these functions.
 
 ## Implementation Requirements
 
