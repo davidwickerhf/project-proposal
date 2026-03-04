@@ -6,6 +6,7 @@ from PIL import Image
 from src.detection.srm import (
     SRMModelArtifact,
     SRMTrainingInput,
+    extract_srm_features,
     score_srm_ec_model,
     train_srm_ec_model,
 )
@@ -44,6 +45,11 @@ from src.embedding.lsb import embed_lsb
             embed_dct_qim,
             (Image.new("RGB", (8, 8), color=(0, 0, 0)), b"abc", "low", 20.0),
             "DCT-QIM embedding",
+        ),
+        (
+            extract_srm_features,
+            (Image.new("RGB", (8, 8), color=(0, 0, 0)),),
+            "SRM feature extraction",
         ),
         (rs_analysis_score, (Image.new("RGB", (8, 8), color=(0, 0, 0)),), "RS analysis"),
         (chi_square_score, (Image.new("RGB", (8, 8), color=(0, 0, 0)),), "Chi-square"),

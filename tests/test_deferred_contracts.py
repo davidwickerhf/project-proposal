@@ -6,11 +6,21 @@ from typing import get_type_hints
 
 from PIL import Image
 
-from src.detection.srm import SRMModelArtifact, SRMTrainingInput, score_srm_ec_model, train_srm_ec_model
+from src.detection.srm import SRMModelArtifact, SRMTrainingInput, extract_srm_features, score_srm_ec_model, train_srm_ec_model
 from src.detection.statistical import block_dct_shift_score, chi_square_score, rs_analysis_score
 from src.embedding.dct import embed_dct_qim
 from src.embedding.encryption import decrypt_payload_aes_256_cbc, encrypt_payload_aes_256_cbc
 from src.embedding.lsb import embed_lsb
+
+
+def test_extract_srm_features_accepts_in_memory_image() -> None:
+    sig = inspect.signature(extract_srm_features)
+    params = list(sig.parameters.values())
+    assert len(params) == 1
+    assert params[0].name == "image"
+    assert get_type_hints(extract_srm_features)["image"] is Image.Image
+    ret = get_type_hints(extract_srm_features)["return"]
+    assert getattr(ret, "__origin__", ret) is list
 
 
 def test_statistical_detectors_accept_in_memory_images() -> None:
@@ -63,6 +73,7 @@ def test_contracts_do_not_require_path_objects() -> None:
         rs_analysis_score,
         chi_square_score,
         block_dct_shift_score,
+        extract_srm_features,
         train_srm_ec_model,
         score_srm_ec_model,
     ]:

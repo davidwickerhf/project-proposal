@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Sequence
 
+from PIL import Image
+
 
 @dataclass(frozen=True)
 class SRMRunSpec:
@@ -37,6 +39,20 @@ class SRMModelArtifact:
     fold: int
     model_state: Any
     hyperparams: dict[str, Any]
+
+
+def extract_srm_features(image: Image.Image) -> list[float]:
+    """Extract SRM filter-bank features from one in-memory image.
+
+    Contract:
+    - Input:
+      - image: in-memory carrier/stego image (expected canonical RGB 512x512).
+    - Output:
+      - 1-D feature vector as a list of floats.
+    - Side effects:
+      - none. This function must not read/write files.
+    """
+    raise NotImplementedError("SRM feature extraction is not implemented yet.")
 
 
 def train_srm_ec_model(training_input: SRMTrainingInput) -> SRMModelArtifact:

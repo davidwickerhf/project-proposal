@@ -30,6 +30,13 @@ from src.data.manifests import (
     write_json,
 )
 from src.data.images import load_image, standardize_and_save
+from src.detection.srm import (
+    SRMModelArtifact,
+    SRMTrainingInput,
+    extract_srm_features,
+    score_srm_ec_model,
+    train_srm_ec_model,
+)
 from src.detection.statistical import (
     block_dct_shift_score,
     chi_square_score,
@@ -344,6 +351,72 @@ class PipelineRunner:
             save_png(stego, self._resolve_manifest_path(row["stego_path"]))
         return len(rows)
 
+    def _train_srm_models(
+        self,
+        stego_manifest_path: Path,
+        splits_json_path: Path,
+    ) -> dict[tuple[int, str], SRMModelArtifact]:
+        """Train SRM+EC models for every fold x method combination.
+
+        Iterates train/val partitions, extracts SRM features from cover and
+        stego images, assembles ``SRMTrainingInput``, and delegates to the
+        deferred ``train_srm_ec_model`` function.
+
+        Returns a dict keyed by ``(fold_number, method)`` -> trained model.
+        """
+        stego_rows = read_rows_csv(stego_manifest_path)
+        folds = self._load_folds(splits_json_path)
+
+        models: dict[tuple[int, str], SRMModelArtifact] = {}
+        for fold in folds:
+            train_groups = set(fold.train_group_ids)
+            val_groups = set(fold.val_group_ids)
+
+            for method in METHODS:
+                method_rows = [r for r in stego_rows if r["method"] == method]
+
+                # Cache features per image path to avoid redundant extraction
+                # (same cover is the negative for multiple stego conditions).
+                feature_cache: dict[str, list[float]] = {}
+
+                def _get_features(image_path: str) -> list[float]:
+                    if image_path not in feature_cache:
+                        img = load_image(self._resolve_manifest_path(image_path))
+                        feature_cache[image_path] = extract_srm_features(img)
+                    return feature_cache[image_path]
+
+                x_train: list[list[float]] = []
+                y_train: list[int] = []
+                x_val: list[list[float]] = []
+                y_val: list[int] = []
+
+                for row in method_rows:
+                    gid = int(row["group_id"])
+                    if gid in train_groups:
+                        dst_x, dst_y = x_train, y_train
+                    elif gid in val_groups:
+                        dst_x, dst_y = x_val, y_val
+                    else:
+                        continue
+
+                    dst_x.append(_get_features(row["stego_path"]))
+                    dst_y.append(1)
+                    dst_x.append(_get_features(row["cover_path"]))
+                    dst_y.append(0)
+
+                training_input = SRMTrainingInput(
+                    method=method,
+                    fold=fold.fold,
+                    x_train=x_train,
+                    y_train=y_train,
+                    x_val=x_val,
+                    y_val=y_val,
+                    random_seed=self.config.embed_seed,
+                )
+                models[(fold.fold, method)] = train_srm_ec_model(training_input)
+
+        return models
+
     def run_detector_stage(
         self,
         stego_manifest_path: Path,
@@ -364,9 +437,24 @@ class PipelineRunner:
         - Positives are stego rows (label=1).
         - Negatives are matched cover rows per stego condition (label=0).
         - With execute=False, score values are left empty as a dry-run plan.
+        - When ``execute`` and ``include_srm`` are both True and no external
+          ``srm_score_provider`` is given, SRM models are automatically trained
+          on train/val partitions before test-set scoring begins.
         """
         stego_rows = read_rows_csv(stego_manifest_path)
         folds = self._load_folds(splits_json_path)
+
+        # Auto-train SRM models when executing with SRM enabled and no
+        # external provider was supplied.
+        srm_models: dict[tuple[int, str], SRMModelArtifact] | None = None
+        if execute and include_srm and srm_score_provider is None:
+            try:
+                srm_models = self._train_srm_models(stego_manifest_path, splits_json_path)
+            except NotImplementedError:
+                if not skip_unimplemented:
+                    raise
+                # SRM feature extraction / training not implemented yet;
+                # individual srm_ec rows will be skipped in the loop below.
 
         pred_rows: list[dict[str, object]] = []
         for fold in folds:
@@ -388,7 +476,9 @@ class PipelineRunner:
                                 detector=detector,
                                 label=1,
                                 row=row,
+                                fold=fold.fold,
                                 srm_score_provider=srm_score_provider,
+                                srm_models=srm_models,
                             )
                         except NotImplementedError:
                             if skip_unimplemented:
@@ -417,7 +507,9 @@ class PipelineRunner:
                                 detector=detector,
                                 label=0,
                                 row=row,
+                                fold=fold.fold,
                                 srm_score_provider=srm_score_provider,
+                                srm_models=srm_models,
                             )
                         except NotImplementedError:
                             if skip_unimplemented:
@@ -713,7 +805,9 @@ class PipelineRunner:
         detector: str,
         label: int,
         row: dict[str, str],
+        fold: int,
         srm_score_provider: Callable[[dict[str, str]], float] | None,
+        srm_models: dict[tuple[int, str], SRMModelArtifact] | None = None,
     ) -> float:
         """Score one detector on either stego (label=1) or cover (label=0) image."""
         image_path_key = "stego_path" if label == 1 else "cover_path"
@@ -726,9 +820,20 @@ class PipelineRunner:
         if detector == "block_dct_shift":
             return block_dct_shift_score(image)
         if detector == "srm_ec":
-            if srm_score_provider is None:
-                raise NotImplementedError(
-                    "SRM score provider is not wired yet. Supply srm_score_provider or disable SRM."
-                )
-            return float(srm_score_provider(row))
+            # Prefer an externally supplied scoring callback when available.
+            if srm_score_provider is not None:
+                return float(srm_score_provider(row))
+            # Fall back to auto-trained models.
+            if srm_models is not None:
+                model = srm_models.get((fold, row["method"]))
+                if model is None:
+                    raise RuntimeError(
+                        f"No SRM model trained for fold={fold}, method={row['method']}"
+                    )
+                features = extract_srm_features(image)
+                scores = score_srm_ec_model(model, [features])
+                return scores[0]
+            raise NotImplementedError(
+                "SRM score provider is not wired yet. Supply srm_score_provider or disable SRM."
+            )
         raise ValueError(f"Unknown detector: {detector}")

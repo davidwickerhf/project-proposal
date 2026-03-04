@@ -6,7 +6,7 @@ from typing import Callable
 import pytest
 from PIL import Image
 
-from src.detection.srm import SRMTrainingInput, score_srm_ec_model, train_srm_ec_model
+from src.detection.srm import SRMTrainingInput, extract_srm_features, score_srm_ec_model, train_srm_ec_model
 from src.detection.statistical import (
     block_dct_shift_score,
     chi_square_score,
@@ -118,6 +118,18 @@ def test_embed_dct_contract_and_determinism_spec() -> None:
     assert cover.tobytes() == cover_before
     assert s1.tobytes() == s2.tobytes()
     assert s1.tobytes() != s3.tobytes()
+
+
+def test_extract_srm_features_returns_deterministic_float_list_spec() -> None:
+    cover = _make_cover()
+
+    f1 = _call_or_xfail(extract_srm_features, cover)
+    f2 = _call_or_xfail(extract_srm_features, cover)
+
+    assert isinstance(f1, list)
+    assert len(f1) > 0
+    assert all(isinstance(v, float) for v in f1)
+    assert f1 == f2  # deterministic
 
 
 def test_statistical_detectors_return_finite_deterministic_scores_spec() -> None:
