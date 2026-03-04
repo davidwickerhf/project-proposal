@@ -300,31 +300,31 @@ Applicability:
 4. Compute fold-level contrasts to answer RQs.
 
 RQ mapping:
-- RQ1 (real vs pooled ML):
-  `Delta_auc_rq1 = AUC(real) - 0.5 * (AUC(ml_a) + AUC(ml_b))`
-  Primary metric: fold-wise `Delta_auc_rq1` (report mean and interval).
-  Tables: `results/metrics/source_contrasts.csv`, `results/metrics/pooled_summary.csv`.
-  Graph: Figure 1A (source comparison; generated base plot `results/figures/auc_by_source_detector.png`).
-- RQ2 (SDXL vs PixArt):
-  `Delta_auc_rq2 = AUC(ml_a) - AUC(ml_b)`
-  Primary metric: fold-wise `Delta_auc_rq2` (report mean and interval).
-  Tables: `results/metrics/source_contrasts.csv` (filter `source in {ml_a, ml_b}`).
-  Graph: Figure 1B (ML-vs-ML contrast per detector).
-- RQ3 (payload interaction):
-  `Delta_source(payload) = AUC(real, payload) - AUC(pooled ML, payload)`
-  Primary metric: change of `Delta_source(payload)` from `low -> medium -> high`.
-  Tables: `results/metrics/condition_metrics.csv` + source-level contrasts derived per payload.
-  Graph: Figure 2 (payload trend lines of source contrast, one line per detector/method).
-- RQ4 (embedding-method interaction):
-  `Delta_source(method) = AUC(real, method) - AUC(pooled ML, method)`
-  Primary metric: `Delta_source(lsb) - Delta_source(dct)`.
-  Tables: `results/metrics/condition_metrics.csv`.
-  Graph: Figure 3A (method interaction); generated support plot `results/figures/auc_by_method_detector.png`.
-- RQ5 (encryption interaction):
-  `Delta_source(enc) = AUC(real, enc) - AUC(pooled ML, enc)`
-  Primary metric: `Delta_source(plain) - Delta_source(encrypted)`.
-  Tables: `results/metrics/condition_metrics.csv`.
-  Graph: Figure 3B (encryption interaction bars/points per detector).
+- RQ1 (real vs pooled ML)
+  - Formula: `Delta_auc_rq1 = AUC(real) - 0.5 * (AUC(ml_a) + AUC(ml_b))`
+  - Primary metric: fold-wise `Delta_auc_rq1` (report mean and interval).
+  - Tables: `results/metrics/source_contrasts.csv`, `results/metrics/pooled_summary.csv`.
+  - Graph: Figure 1A (source comparison; generated base plot `results/figures/auc_by_source_detector.png`).
+- RQ2 (SDXL vs PixArt)
+  - Formula: `Delta_auc_rq2 = AUC(ml_a) - AUC(ml_b)`
+  - Primary metric: fold-wise `Delta_auc_rq2` (report mean and interval).
+  - Tables: `results/metrics/source_contrasts.csv` (filter `source in {ml_a, ml_b}`).
+  - Graph: Figure 1B (ML-vs-ML contrast per detector).
+- RQ3 (payload interaction)
+  - Formula: `Delta_source(payload) = AUC(real, payload) - AUC(pooled ML, payload)`
+  - Primary metric: change of `Delta_source(payload)` from `low -> medium -> high`.
+  - Tables: `results/metrics/condition_metrics.csv` + source-level contrasts derived per payload.
+  - Graph: Figure 2 (payload trend lines of source contrast, one line per detector/method).
+- RQ4 (embedding-method interaction)
+  - Formula: `Delta_source(method) = AUC(real, method) - AUC(pooled ML, method)`
+  - Primary metric: `Delta_source(lsb) - Delta_source(dct)`.
+  - Tables: `results/metrics/condition_metrics.csv`.
+  - Graph: Figure 3A (method interaction); generated support plot `results/figures/auc_by_method_detector.png`.
+- RQ5 (encryption interaction)
+  - Formula: `Delta_source(enc) = AUC(real, enc) - AUC(pooled ML, enc)`
+  - Primary metric: `Delta_source(plain) - Delta_source(encrypted)`.
+  - Tables: `results/metrics/condition_metrics.csv`.
+  - Graph: Figure 3B (encryption interaction bars/points per detector).
 
 ### 11) Recommended Final-Report AUC Figures
 
