@@ -2,25 +2,41 @@
 
 Unmodified carrier images used as input to the embedding pipelines.
 
-## `real/` — 500 Real Photographs
+## Source Directories
 
-| Source | Count | Notes |
-|--------|-------|-------|
-| RAISE | 250 | Demosaiced from RAW; stratified by scene category |
-| COCO val2017 | 150 | Center-cropped; captions used as SD prompts |
-| Flickr30k test | 100 | Center-cropped; captions used as SD prompts |
+- `real/`: real photographic covers from curated COCO/Flickr30k set
+- `ml_a/`: SDXL-generated covers
+- `ml_b/`: PixArt-alpha-generated covers
 
-## `ml/` — 500 ML-Generated Images
+## Locked Counts
 
-| Source | Count | Notes |
-|--------|-------|-------|
-| Stable Diffusion v2.1 | 250 | Prompts from COCO/Flickr captions; seed=42 |
-| StyleGAN3 | 250 | Seeds 0-249; truncation psi=0.7 |
+- Total groups (`group_id`): `500`
+- Covers per group: `3` (`real`, `ml_a`, `ml_b`)
+- Total covers: `1,500`
+- Per source: `500`
 
 ## Quality Gate
 
-All images must pass BRISQUE <= 50 (perceptual quality threshold). Images that fail are regenerated or resampled.
+- All covers must pass the generation/selection quality gate before freeze.
+- Store QC outcomes in `data/manifests/covers_master.csv` (`qc_pass`, `qc_score`).
 
 ## Normalization
 
-All images: 512x512 px, RGB, 8-bit, lossless PNG. RAISE images are demosaiced from RAW before normalization; all others are center-cropped and resized.
+All covers are standardized to:
+- `512x512`
+- `RGB`
+- `8-bit`
+- lossless PNG
+
+Standardization is performed by:
+- `python3 -m src.pipeline.cli --project-root . standardize-covers --input-index <raw_cover_index.csv>`
+
+## Naming
+
+Cover naming must follow:
+
+```
+g{group_id:04d}__src-{source}.png
+```
+
+where `source in {real, ml_a, ml_b}`.

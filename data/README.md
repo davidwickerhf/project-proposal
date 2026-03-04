@@ -1,52 +1,69 @@
 # Data Directory
 
-This directory stores all image data for the project. Images are excluded from git via `.gitignore` (only `.gitkeep` and `README.md` files are tracked).
+This directory stores all data artifacts for the image steganalysis pipeline.
+
+Git policy:
+- Image binaries are excluded from git.
+- Only `.gitkeep` and `README.md` files are tracked in data folders.
 
 ## Structure
 
 ```
 data/
-├── covers/          <- Original unmodified images (1,000 total)
-│   ├── real/        <- 500 real photographs (RAISE 250, COCO 150, Flickr30k 100)
-│   └── ml/          <- 500 ML-generated images (SD v2.1 250, StyleGAN3 250)
-└── stego/           <- Steganographic images (12,000 total)
-    ├── lsb/         <- LSB-embedded images
-    │   ├── low/     <- ~0.08 bpp (k=1, 25% pixels)
-    │   ├── medium/  <- ~0.16 bpp (k=1, 50% pixels)
-    │   └── high/    <- ~0.32 bpp (k=2, 50% pixels)
-    └── dct/         <- DCT-QIM-embedded images
-        ├── low/     <- ~0.08 bpp (10% mid-freq coefficients)
-        ├── medium/  <- ~0.16 bpp (25% mid-freq coefficients)
-        └── high/    <- ~0.32 bpp (50% mid-freq coefficients)
+├── covers/
+│   ├── real/        <- Real cover images
+│   ├── ml_a/        <- SDXL-generated cover images
+│   └── ml_b/        <- PixArt-alpha-generated cover images
+├── payloads/
+│   ├── plain/{low,medium,high}/
+│   └── encrypted/{low,medium,high}/
+├── stego/
+│   ├── lsb/{low,medium,high}/{plain,encrypted}/{real,ml_a,ml_b}/
+│   └── dct/{low,medium,high}/{plain,encrypted}/{real,ml_a,ml_b}/
+└── manifests/
+    ├── covers_master.csv
+    ├── payload_manifest.csv
+    └── stego_manifest.csv
 ```
 
-Each payload level directory contains:
-```
-{low,medium,high}/
-├── plain/           <- Unencrypted payload
-│   ├── real/        <- Stego images from real covers
-│   └── ml/          <- Stego images from ML-generated covers
-└── encrypted/       <- AES-256-CBC encrypted payload
-    ├── real/
-    └── ml/
-```
+## Locked Cardinalities
+
+- Groups (`group_id`): `500`
+- Covers per group: `3` (`real`, `ml_a`, `ml_b`)
+- Total covers: `1,500`
+- Stego variants per cover: `2 methods x 3 payload levels x 2 encryption states = 12`
+- Total stegos: `18,000`
 
 ## File Naming Convention
 
-All images follow the format:
+Cover image:
 
 ```
-{source}_{id:04d}_{category}.png
+g{group_id:04d}__src-{source}.png
 ```
 
-- `source`: `raise`, `coco`, `flickr`, `sd21`, or `sg3`
-- `id`: zero-padded 4-digit integer
-- `category`: `outdoor`, `indoor`, `portrait`, `macro`, or `other`
+Stego image:
 
-Examples: `raise_0001_outdoor.png`, `sd21_0042_portrait.png`
+```
+g{group_id:04d}__src-{source}__m-{method}__p-{payload}__e-{encryption}.png
+```
 
-Stego images share the same filename as their cover, so pairing is trivial.
+Payload file:
+
+```
+g{group_id:04d}__p-{payload}__e-{encryption}.bin
+```
 
 ## Image Format
 
-All images are normalized to: **512x512 px, RGB, 8-bit depth, lossless PNG**.
+All cover and stego images are normalized to:
+- `512x512`
+- `RGB`
+- `8-bit`
+- lossless PNG
+
+## Notes
+
+- Legacy folders such as `data/covers/ml/` reflect an older design and should not be used for new runs.
+- The canonical layout can be created via:
+  - `python3 -m src.pipeline.cli --project-root . init-layout`

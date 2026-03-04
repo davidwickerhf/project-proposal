@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from PIL import Image
+
+from src.detection.srm import score_srm_ec_model, train_srm_ec_model
+from src.detection.statistical import (
+    block_dct_shift_score,
+    chi_square_score,
+    rs_analysis_score,
+)
+from src.embedding.dct import embed_dct_qim
+from src.embedding.encryption import (
+    decrypt_payload_aes_256_cbc,
+    encrypt_payload_aes_256_cbc,
+)
+from src.embedding.lsb import embed_lsb
+
+
+@pytest.mark.parametrize(
+    ("fn", "args", "match"),
+    [
+        (
+            encrypt_payload_aes_256_cbc,
+            (b"abc", b"k" * 32, b"i" * 16),
+            "AES-256-CBC encryption",
+        ),
+        (
+            decrypt_payload_aes_256_cbc,
+            (b"abc", b"k" * 32, b"i" * 16),
+            "AES-256-CBC decryption",
+        ),
+        (
+            embed_lsb,
+            (Image.new("RGB", (8, 8), color=(0, 0, 0)), b"abc", "low", 123),
+            "LSB embedding",
+        ),
+        (
+            embed_dct_qim,
+            (Image.new("RGB", (8, 8), color=(0, 0, 0)), b"abc", "low", 20.0),
+            "DCT-QIM embedding",
+        ),
+        (rs_analysis_score, (Path("/tmp/x.png"),), "RS analysis"),
+        (chi_square_score, (Path("/tmp/x.png"),), "Chi-square"),
+        (block_dct_shift_score, (Path("/tmp/x.png"),), "Block-DCT shift test"),
+        (train_srm_ec_model, ("lsb", 0), r"SRM\+EC training"),
+        (score_srm_ec_model, ("lsb", 0), r"SRM\+EC inference"),
+    ],
+)
+def test_deferred_functions_raise_not_implemented(fn, args, match: str) -> None:
+    with pytest.raises(NotImplementedError, match=match):
+        fn(*args)

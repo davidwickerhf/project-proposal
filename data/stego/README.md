@@ -1,17 +1,20 @@
 # Stego Images
 
-Steganographic images produced by embedding payloads into cover images. Total: **12,000 images** (1,000 covers x 2 methods x 3 payloads x 2 encryption conditions).
+Steganographic images produced by embedding payloads into cover images.
+
+Total: **18,000 images**  
+Computation: `1,500 covers x 2 methods x 3 payload levels x 2 encryption states`
 
 ## Directory Layout
 
 ```
-stego/{method}/{payload_level}/{encryption}/{carrier_origin}/
+stego/{method}/{payload_level}/{encryption}/{source}/
 ```
 
 - **method**: `lsb` (spatial-domain LSB substitution) or `dct` (frequency-domain DCT-QIM)
 - **payload_level**: `low`, `medium`, or `high`
 - **encryption**: `plain` (raw pseudorandom payload) or `encrypted` (AES-256-CBC pre-encrypted)
-- **carrier_origin**: `real` or `ml`
+- **source**: `real`, `ml_a`, or `ml_b`
 
 ## Embedding Methods
 
@@ -36,7 +39,7 @@ Embeds bits into mid-frequency DCT coefficients (zigzag positions 10-54) of 8x8 
 ## Encryption
 
 - **plain/**: Payload is a pseudorandom bitstream (fixed-seed PRNG), embedded directly.
-- **encrypted/**: Same bitstream passed through AES-256-CBC encryption before embedding. Addresses RQ4 (encryption effect on detectability).
+- **encrypted/**: Same bitstream passed through AES-256-CBC encryption before embedding. Addresses RQ5 (encryption interaction).
 
 ## Payload & Key
 
@@ -46,4 +49,12 @@ Embeds bits into mid-frequency DCT coefficients (zigzag positions 10-54) of 8x8 
 
 ## Pairing
 
-Stego filenames match their cover filenames exactly, enabling direct cover-stego pairing for quality metrics (PSNR, SSIM, FSIM) and detection evaluation.
+Stego filenames are deterministic and self-describing:
+
+```
+g{group_id:04d}__src-{source}__m-{method}__p-{payload}__e-{encryption}.png
+```
+
+This supports direct join with cover files by `group_id + source` for:
+- quality metrics (`PSNR`, `SSIM`, `FSIM`)
+- detector evaluation

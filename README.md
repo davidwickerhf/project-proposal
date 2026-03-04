@@ -30,145 +30,246 @@ project-proposal/
 │       ├── midway_proposal_slides_5min.tex
 │       └── midway_proposal_slides_5min.pdf
 ├── src/
+│   ├── common/
 │   ├── data/
 │   ├── embedding/
 │   ├── detection/
-│   └── evaluation/
+│   ├── evaluation/
+│   └── pipeline/
 ├── data/
 ├── results/
 └── notebooks/
 ```
 
-## Examiner Comments and Proposed Responses
-
-### 1) Reframe image-quality research question
-
-**Examiner comment:** avoid user studies if possible; rely on standardized quality metrics.
-
-**Proposed response:** keep `RQ1-RQ4` as core confirmatory questions, and frame `RQ5` as an additional technical quality/validity check:
-- Evaluate quality with `PSNR`, `SSIM`, `FSIM` (and optional no-reference metrics such as `BRISQUE`).
-- Include carrier source in quality analysis (real vs ML).
-- Use quality metrics as a confound check for detectability differences, not as a separate user-study endpoint.
-
-### 2) Consider LLM-based quality/source testing
-
-**Examiner idea:** test image quality and carrier source with an LLM.
-
-**Proposed response:** keep LLM/VLM-based judgment optional and exploratory only (appendix-level), not primary evidence. Primary evidence remains objective metrics and statistical testing.
-
-### 3) Compare different encryption models if feasible
-
-**Examiner comment:** compare encryption variants only if scope remains manageable.
-
-**Proposed response:** keep `plain vs AES-256-CBC` as the core confirmatory comparison. If time permits, add one reduced-scope robustness check (for example, `AES-CTR` or `ChaCha20` on a subset).
-
 ## Technical Implementation Plan
 
-## 1) Objective and Scope
+This section is the implementation source-of-truth for collaborators. If README conflicts with any older file-level notes, README wins.
 
-The implementation is designed to isolate the effect of **carrier source** on steganographic detectability while holding the rest of the pipeline fixed. The confirmatory scope is:
-- `RQ1`: real vs pooled-ML source effect
-- `RQ2`: generation-model effect within ML (ML-A vs ML-B)
-- `RQ3`: payload interaction with source effects
-- `RQ4`: embedding-method interaction with source
-- `RQ5`: encryption interaction with source
+### 1) Project Scope and Locked Design
 
-## 2) Controlled Study Design
+Core comparison objective:
+- Measure detectability differences by source (`real`, `ml_a`, `ml_b`) under matched embedding/payload/encryption settings.
 
-Primary design factors:
-- Carrier source: `real`, `ML-A`, `ML-B`
-- Embedding method: `LSB`, `DCT-QIM`
-- Payload: `low`, `medium`, `high`
-- Encryption condition: `plain`, `AES-256-CBC`
+Locked data/model design:
+- Real data: `COCO` + `Flickr30k` only.
+- ML data: `SDXL` (`ml_a`) + `PixArt-alpha` (`ml_b`) only.
+- Single image format across the full pipeline: `512x512`, RGB, 8-bit PNG.
+- Canonical unit is `group_id` (one caption/prompt anchor).
+- Total groups: `500`.
+- Covers per group: `3` (`real`, `ml_a`, `ml_b`) => `1,500` covers total.
+- Stego variants per cover: `2 methods x 3 payloads x 2 encryption = 12`.
+- Total stegos: `1,500 x 12 = 18,000`.
 
-All preprocessing and evaluation settings are standardized to keep comparisons fair.
+### 2) Repository Implementation Status
 
-## 3) Dataset Construction
+Already implemented scaffolding:
+- `src/common/contracts.py`: contracts for IDs, names, and canonical paths.
+- `src/data/images.py`: image loading, center-crop, resize, PNG save.
+- `src/data/manifests.py`: CSV/JSON manifest read/write helpers.
+- `src/evaluation/splits.py`: grouped 5-fold generation by `group_id`.
+- `src/pipeline/config.py`: pipeline configuration defaults.
+- `src/pipeline/runner.py`: stage orchestration and artifact manifest generation.
+- `src/pipeline/cli.py`: CLI entrypoint to run stages.
 
-### Real carriers (500)
-- `COCO`: 300 images
-- `Flickr30k`: 200 images
+Deferred functions (intentionally not implemented yet):
+- `src/embedding/encryption.py`
+- `src/embedding/lsb.py`
+- `src/embedding/dct.py`
+- `src/detection/statistical.py`
+- `src/detection/srm.py`
 
-### ML carriers (1,000)
-- `ML-A (SDXL 1.0)`: 500 images
-- `ML-B (PixArt-alpha)`: 500 images
+### 3) Data Contracts for Collaborators
 
-### Standardization
-- Resize/normalize to `512x512`, RGB, 8-bit PNG.
-- Apply quality filtering for generated images (for example BRISQUE threshold).
+Directory contract:
 
-## 4) Embedding Pipeline
+```text
+data/
+├── covers/{real|ml_a|ml_b}/
+├── payloads/{plain|encrypted}/{low|medium|high}/
+├── stego/{lsb|dct}/{low|medium|high}/{plain|encrypted}/{real|ml_a|ml_b}/
+└── manifests/
 
-### Spatial-domain method: LSB
-- PRNG-keyed pixel selection.
-- `k=1` for low/medium payload, `k=2` for high payload.
+results/
+├── predictions/
+├── metrics/
+└── splits/
+```
 
-### Frequency-domain method: DCT-QIM
-- `8x8` block DCT.
-- Mid-frequency coefficient embedding with QIM.
+Filename contract:
+- Cover: `g{group_id:04d}__src-{source}.png`
+- Stego: `g{group_id:04d}__src-{source}__m-{method}__p-{payload}__e-{encryption}.png`
+- Payload: `g{group_id:04d}__p-{payload}__e-{encryption}.bin`
 
-### Encryption branch
-- Optional pre-embedding encryption with `AES-256-CBC`.
+Allowed values:
+- `source in {real, ml_a, ml_b}`
+- `method in {lsb, dct}`
+- `payload in {low, medium, high}`
+- `encryption in {plain, encrypted}`
 
-## 5) Cover/Stego Pair Construction (AUC Requirement)
+### 4) Required Manifest Schemas
 
-For every condition, build paired classes:
-- **Negative class:** cover images (no message)
-- **Positive class:** stego images (embedded message)
+`data/manifests/covers_master.csv`
+- `group_id`, `source`, `dataset`, `orig_id`, `caption_id`, `caption_text`, `image_path`, `qc_pass`, `qc_score`, `seed`
 
-This ensures valid ROC/AUC computation per condition.
+`data/manifests/payload_manifest.csv`
+- `group_id`, `payload_level`, `encryption`, `payload_path`, `payload_bits`, `aes_iv`, `aes_key_id`, `seed`
 
-## 6) Steganalysis Detectors
+`data/manifests/stego_manifest.csv`
+- `group_id`, `source`, `method`, `payload_level`, `encryption`, `cover_path`, `payload_path`, `stego_path`, `embed_params`, `seed`
+
+`results/splits/splits_grouped5fold.json`
+- per fold: `train_group_ids`, `val_group_ids`, `test_group_ids`
+
+Predictions tables (`results/predictions/*.csv`)
+- `fold`, `detector`, `group_id`, `source`, `method`, `payload_level`, `encryption`, `label`, `score`
+
+### 5) Input Needed to Populate Covers
+
+To standardize and register covers, collaborators provide one CSV input index for:
+- selected real images,
+- generated `ml_a` images,
+- generated `ml_b` images.
+
+Required columns for `standardize-covers` input CSV:
+- `group_id`
+- `source`
+- `dataset`
+- `orig_id`
+- `caption_id`
+- `caption_text`
+- `raw_image_path`
+- `qc_pass`
+- `qc_score`
+- `seed`
+
+The pipeline reads `raw_image_path`, standardizes to canonical PNG, and writes `covers_master.csv`.
+
+### 6) End-to-End Runbook
+
+Run from repo root:
+
+```bash
+python3 -m src.pipeline.cli --project-root . init-layout
+python3 -m src.pipeline.cli --project-root . standardize-covers --input-index <raw_cover_index.csv>
+python3 -m src.pipeline.cli --project-root . build-payload-manifest --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-stego-manifest --covers-manifest data/manifests/covers_master.csv --payload-manifest data/manifests/payload_manifest.csv
+python3 -m src.pipeline.cli --project-root . create-splits --covers-manifest data/manifests/covers_master.csv
+python3 -m src.pipeline.cli --project-root . build-training-jobs --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
+```
+
+Execution notes:
+- `run-embedding-stage` is dry-run by default (counts rows).
+- Adding `--execute` invokes embedding placeholders and will fail until those functions are implemented.
+- `build-payload-manifest --write-files` will invoke encryption placeholder for encrypted payloads.
+
+### 7) Deferred Function Specifications
+
+`encrypt_payload_aes_256_cbc(payload: bytes, key: bytes, iv: bytes) -> bytes`
+- Input: raw payload bytes, 32-byte key, 16-byte IV.
+- Output: encrypted payload bytes for storage.
+- Must be deterministic under fixed key+IV.
+
+`embed_lsb(cover_image, payload_bytes, payload_level, prng_key) -> Image`
+- Input: canonical cover image + payload bytes.
+- Output: stego image preserving canonical format constraints.
+- Must honor payload levels (`low`, `medium`, `high`) exactly as locked in docs.
+
+`embed_dct_qim(cover_image, payload_bytes, payload_level, delta) -> Image`
+- Input: canonical cover image + payload bytes.
+- Output: stego image with DCT-QIM embedding.
+- Must use consistent payload-level policy and deterministic behavior under fixed seeds.
+
+`rs_analysis_score(image_path) -> float`
+`chi_square_score(image_path) -> float`
+`block_dct_shift_score(image_path) -> float`
+- Return scalar scores usable for ROC/AUC.
+- `RS` and `chi-square` apply to LSB branch only.
+- `block_dct_shift` applies to DCT branch only.
+
+`train_srm_ec_model(method, fold)` / `score_srm_ec_model(method, fold)`
+- SRM+EC train/infer interfaces.
+- Must support per-method training (`lsb` and `dct`) per fold.
+
+### 8) Training and Fold Logic
+
+Why folds:
+- Folds are required for trained models (SRM) and used consistently for all detectors to keep comparisons fair.
+
+Split protocol:
+- Grouped 5-fold by `group_id` (prevents leakage across `real/ml_a/ml_b` variants of the same semantic anchor).
+- Per fold:
+  - Test groups: `100`
+  - Remaining `400` split into train `350` + validation `50`
+
+Per-fold counts:
+- Train covers: `350 x 3 = 1,050`
+- Validation covers: `50 x 3 = 150`
+- Test covers: `100 x 3 = 300`
+
+Per method, positives per fold (pooled payload+encryption):
+- Train: `1,050 x 6 = 6,300`
+- Validation: `150 x 6 = 900`
+- Test: `300 x 6 = 1,800`
+
+SRM training scope:
+- Train SRM per method, per fold.
+- `2 methods x 5 folds = 10` SRM training runs total.
+- This is generated as `results/splits/srm_training_jobs.csv`.
+
+### 9) Detector Execution Policy
 
 Confirmatory detectors:
-- `SRM+EC` (cross-method baseline for LSB and DCT)
-- `RS Analysis` (LSB-specific confirmatory detector)
-- `Block-DCT shift test` (DCT-specific confirmatory detector)
+- `SRM+EC` (trained)
+- `RS` (LSB confirmatory)
+- `Block-DCT shift test` (DCT confirmatory)
 
 Sensitivity-only detector:
-- `chi-square` attack for LSB robustness checks
+- `chi-square` (LSB only, not confirmatory)
 
-## 7) Experiment Mapping
+Applicability:
+- LSB rows: `SRM+EC`, `RS`, `chi-square`
+- DCT rows: `SRM+EC`, `Block-DCT shift test`
 
-- `Exp1 (RQ1)`: compare real vs pooled-ML detectability under matched settings.
-- `Exp2 (RQ2)`: compare ML-A vs ML-B detectability under matched settings.
-- `Exp3 (RQ3)`: test source x payload interaction.
-- `Exp4 (RQ4)`: test source x embedding-method interaction.
-- `Exp5 (RQ5)`: test source x encryption interaction.
+### 10) Analysis Workflow After Pipeline Completion
 
-## 8) Detailed Validation Protocol (Working Notes)
+1. Build out-of-fold prediction tables from test partitions only.
+2. Compute fold-level AUC and secondary metrics by detector/condition.
+3. Aggregate across folds (mean + intervals).
+4. Compute fold-level contrasts to answer RQs.
 
-### Detection metrics
-- `ROC-AUC` (primary)
-- Secondary summaries: accuracy at Youden's J, EER, and FPR at fixed FNR
+RQ mapping:
+- RQ1: `AUC(real) - AUC(pooled ML)`
+- RQ2: `AUC(ml_a) - AUC(ml_b)`
+- RQ3: source-effect change across payload levels
+- RQ4: source-effect change across embedding methods
+- RQ5: source-effect change across encryption states
 
-### Quality control metrics
-- `PSNR`, `SSIM`, `FSIM`
-- `BRISQUE` used as generation-stage quality gate
+### 11) Recommended Final-Report AUC Figures
 
-### Detector usage rules
-- LSB confirmatory: `SRM+EC`, `RS`
-- DCT confirmatory: `SRM+EC`, `Block-DCT shift test`
-- `chi-square` is reported as LSB sensitivity-only (not confirmatory)
+Main paper set:
+- Figure 1 (RQ1 + RQ2): detector-wise AUC comparisons with fold CI.
+- Figure 2 (RQ3): payload trend plot of source contrasts.
+- Figure 3 (RQ4 + RQ5): method interaction and encryption interaction plots.
+- Appendix: full ROC curves per detector/condition/fold summary.
 
-### Statistical testing
-- ANOVA on AUC with source, method, payload, and encryption factors
-- Planned Wilcoxon signed-rank contrasts
-- Effect sizes (`Cohen's d`) with uncertainty reporting
-- Bonferroni correction across confirmatory comparisons
+### 12) Multi-Run Workflow
 
-## 9) Planned Outputs
+Current scaffold writes canonical output paths. For repeated experiments:
+- Use a run label and archive outputs after each run.
+- Recommended convention:
+  - `results/runs/<run_id>/...`
+  - `data/manifests/runs/<run_id>/...`
+- Do not overwrite previous finalized run artifacts.
 
-- Condition-level ROC curves and AUC tables
-- Experiment-level summary plots (payload trends, encryption effects, interaction plots)
-- Statistical result tables (p-values, corrected significance, effect sizes, confidence intervals)
-- Quality metric tables and threshold checks
+### 13) Validation and Integrity Checklist
 
-## 10) Implementation Sequence
-
-1. Build/normalize datasets (real + ML)
-2. Generate cover/stego sets for all conditions
-3. Run SRM+EC, RS, block-DCT shift, and chi-square (sensitivity) scoring
-4. Compute ROC/AUC and quality metrics
-5. Run experiment-specific statistical analyses
-6. Produce figures/tables for report and slides
+Before claiming pipeline completion:
+- `500` groups exist in covers manifest.
+- `1,500` covers exist (`3` per group).
+- `18,000` stego records exist (`12` per cover).
+- Every stego maps to one cover by `group_id + source`.
+- No split leakage (`group_id` appears in only one split partition per fold).
+- Detector applicability rules are enforced.
+- SRM jobs equal `10` total (`2 methods x 5 folds`).
+- Manifests include seeds and parameter snapshots for reproducibility.
