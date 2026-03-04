@@ -300,18 +300,43 @@ Applicability:
 4. Compute fold-level contrasts to answer RQs.
 
 RQ mapping:
-- RQ1: `AUC(real) - AUC(pooled ML)`
-- RQ2: `AUC(ml_a) - AUC(ml_b)`
-- RQ3: source-effect change across payload levels
-- RQ4: source-effect change across embedding methods
-- RQ5: source-effect change across encryption states
+- RQ1 (real vs pooled ML):
+  `Delta_auc_rq1 = AUC(real) - 0.5 * (AUC(ml_a) + AUC(ml_b))`
+  Primary metric: fold-wise `Delta_auc_rq1` (report mean and interval).
+  Tables: `results/metrics/source_contrasts.csv`, `results/metrics/pooled_summary.csv`.
+  Graph: Figure 1A (source comparison; generated base plot `results/figures/auc_by_source_detector.png`).
+- RQ2 (SDXL vs PixArt):
+  `Delta_auc_rq2 = AUC(ml_a) - AUC(ml_b)`
+  Primary metric: fold-wise `Delta_auc_rq2` (report mean and interval).
+  Tables: `results/metrics/source_contrasts.csv` (filter `source in {ml_a, ml_b}`).
+  Graph: Figure 1B (ML-vs-ML contrast per detector).
+- RQ3 (payload interaction):
+  `Delta_source(payload) = AUC(real, payload) - AUC(pooled ML, payload)`
+  Primary metric: change of `Delta_source(payload)` from `low -> medium -> high`.
+  Tables: `results/metrics/condition_metrics.csv` + source-level contrasts derived per payload.
+  Graph: Figure 2 (payload trend lines of source contrast, one line per detector/method).
+- RQ4 (embedding-method interaction):
+  `Delta_source(method) = AUC(real, method) - AUC(pooled ML, method)`
+  Primary metric: `Delta_source(lsb) - Delta_source(dct)`.
+  Tables: `results/metrics/condition_metrics.csv`.
+  Graph: Figure 3A (method interaction); generated support plot `results/figures/auc_by_method_detector.png`.
+- RQ5 (encryption interaction):
+  `Delta_source(enc) = AUC(real, enc) - AUC(pooled ML, enc)`
+  Primary metric: `Delta_source(plain) - Delta_source(encrypted)`.
+  Tables: `results/metrics/condition_metrics.csv`.
+  Graph: Figure 3B (encryption interaction bars/points per detector).
 
 ### 11) Recommended Final-Report AUC Figures
 
 Main paper set:
-- Figure 1 (RQ1 + RQ2): detector-wise AUC comparisons with fold CI.
-- Figure 2 (RQ3): payload trend plot of source contrasts.
-- Figure 3 (RQ4 + RQ5): method interaction and encryption interaction plots.
+- Figure 1A (RQ1): detector-wise `real` vs `pooled ML` AUC with fold intervals.
+- Figure 1B (RQ2): detector-wise `ml_a` vs `ml_b` AUC contrast with fold intervals.
+- Figure 2 (RQ3): payload-level source-contrast trend (`low`, `medium`, `high`).
+- Figure 3A (RQ4): method interaction contrast (`lsb` vs `dct`).
+- Figure 3B (RQ5): encryption interaction contrast (`plain` vs `encrypted`).
+- Pipeline-generated base figures:
+  - `results/figures/auc_by_source_detector.png`
+  - `results/figures/auc_by_method_detector.png`
 - Appendix: full ROC curves per detector/condition/fold summary.
 
 ### 12) Multi-Run Workflow
