@@ -1,20 +1,16 @@
 # `src/evaluation` Guide
 
-`evaluation/` contains split generation, metric aggregation, and plotting helpers.
+`evaluation/` contains metric aggregation and plotting helpers.
 
-## Locked Split Design
+## Scope
 
 - total groups: `500`
-- folds: `5`
-- per fold:
-  - train groups: `350`
-  - validation groups: `50`
-  - test groups: `100`
-
-All three source variants for the same `group_id` stay in the same partition to prevent leakage.
+- evaluation is run on the full study table
+- metrics are aggregated by detector, by condition, and by source
 
 ## Outputs
 
-- `results/splits/splits_grouped5fold.json`
+- `results/metrics/detector_metrics.csv`
+- `results/metrics/source_metrics.csv`
 - `results/metrics/*.csv`
 - `results/figures/*.png`

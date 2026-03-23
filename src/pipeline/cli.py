@@ -58,9 +58,6 @@ def _parser() -> argparse.ArgumentParser:
     p_stego.add_argument("--covers-manifest", type=Path, required=True)
     p_stego.add_argument("--payload-manifest", type=Path, required=True)
 
-    p_split = sub.add_parser("create-splits", help="Create grouped 5-fold split JSON.")
-    p_split.add_argument("--covers-manifest", type=Path, required=True)
-
     p_embed = sub.add_parser(
         "run-embedding-stage",
         help="Run embedding stage from stego manifest (placeholder embedding functions).",
@@ -74,10 +71,9 @@ def _parser() -> argparse.ArgumentParser:
 
     p_det = sub.add_parser(
         "run-detectors",
-        help="Run detector stage on test folds and write prediction table.",
+        help="Run detector stage on the full evaluation table and write predictions.",
     )
     p_det.add_argument("--stego-manifest", type=Path, required=True)
-    p_det.add_argument("--splits-json", type=Path, required=True)
     p_det.add_argument(
         "--execute",
         action="store_true",
@@ -91,7 +87,7 @@ def _parser() -> argparse.ArgumentParser:
 
     p_metrics = sub.add_parser(
         "compute-metrics",
-        help="Aggregate detector predictions into fold/condition/source metric tables.",
+        help="Aggregate detector predictions into detector/condition/source metric tables.",
     )
     p_metrics.add_argument("--predictions", type=Path, required=True)
     p_metrics.add_argument(
@@ -179,11 +175,6 @@ def main() -> None:
             payload_manifest_path=_resolve_path(args.payload_manifest, project_root),
         )
         print(f"Stego manifest: {out}")
-    elif args.command == "create-splits":
-        out = runner.create_grouped_splits(
-            covers_manifest_path=_resolve_path(args.covers_manifest, project_root)
-        )
-        print(f"Splits JSON: {out}")
     elif args.command == "run-embedding-stage":
         n = runner.run_embedding_stage(
             stego_manifest_path=_resolve_path(args.stego_manifest, project_root),
@@ -193,7 +184,6 @@ def main() -> None:
     elif args.command == "run-detectors":
         out = runner.run_detector_stage(
             stego_manifest_path=_resolve_path(args.stego_manifest, project_root),
-            splits_json_path=_resolve_path(args.splits_json, project_root),
             execute=args.execute,
             skip_unimplemented=args.skip_unimplemented,
         )
@@ -207,10 +197,9 @@ def main() -> None:
                 else None
             ),
         )
-        print(f"Fold metrics CSV: {out['fold_metrics']}")
+        print(f"Detector metrics CSV: {out['detector_metrics']}")
         print(f"Condition metrics CSV: {out['condition_metrics']}")
-        print(f"Source contrasts CSV: {out['source_contrasts']}")
-        print(f"Pooled summary CSV: {out['pooled_summary']}")
+        print(f"Source metrics CSV: {out['source_metrics']}")
         print(f"Quality metrics CSV: {out['quality_metrics']}")
     elif args.command == "plot-metrics":
         out = runner.generate_metrics_figures(
@@ -238,13 +227,11 @@ def main() -> None:
         )
         print(f"Payload manifest: {out['payload_manifest']}")
         print(f"Stego manifest: {out['stego_manifest']}")
-        print(f"Splits JSON: {out['splits_json']}")
         print(f"Embedding rows processed: {out['embedding_rows_processed']}")
         print(f"Predictions CSV: {out['predictions']}")
-        print(f"Fold metrics CSV: {out['fold_metrics']}")
+        print(f"Detector metrics CSV: {out['detector_metrics']}")
         print(f"Condition metrics CSV: {out['condition_metrics']}")
-        print(f"Source contrasts CSV: {out['source_contrasts']}")
-        print(f"Pooled summary CSV: {out['pooled_summary']}")
+        print(f"Source metrics CSV: {out['source_metrics']}")
         print(f"Quality metrics CSV: {out['quality_metrics']}")
         if args.generate_figures:
             print(f"AUC by source figure: {out['auc_by_source_detector']}")

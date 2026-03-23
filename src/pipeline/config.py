@@ -7,7 +7,7 @@ The final proposal fixes the repository to:
 - grayscale 512x512 carriers
 - branch-specific storage: PNG for spatial LSB, JPEG Q=95 for DCT-LSB
 - main payload levels defined by fill rate (25/50/75%)
-- training-free primary detectors
+- classical statistical primary detectors
 
 This file stores those experiment-wide constants in one place so the
 manifests, runner, and docs stay in sync.
@@ -26,7 +26,6 @@ class PipelineConfig:
     project_root: Path
     image_size: tuple[int, int] = (512, 512)
     n_groups: int = 500
-    n_folds: int = 5
     split_seed: int = 42
     payload_seed: int = 42
     embed_seed: int = 42

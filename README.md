@@ -8,7 +8,6 @@ The codebase is now aligned only with the final proposal:
 - spatial branch: sequential `LSB + PNG`
 - frequency branch: `DCT-LSB + JPEG Q=95`
 - primary detectors: `RS`, spatial `chi-square`, `Sample Pairs`, DCT `chi-square`, and calibration `chi-square`
-- optional extension only: `SRNet`
 
 ## Locked Design
 
@@ -40,7 +39,6 @@ data/
 results/
 ├── predictions/
 ├── metrics/
-├── splits/
 └── figures/
 ```
 
@@ -74,7 +72,6 @@ Main deferred files:
 - `src/embedding/lsb.py`
 - `src/embedding/dct.py`
 - `src/detection/statistical.py`
-- `src/detection/srnet.py`
 
 ## Mainline CLI
 
@@ -83,9 +80,8 @@ python3 -m src.pipeline.cli --project-root . init-layout
 python3 -m src.pipeline.cli --project-root . standardize-covers --input-index <raw_cover_index.csv>
 python3 -m src.pipeline.cli --project-root . build-payload-manifest --covers-manifest data/manifests/covers_master.csv
 python3 -m src.pipeline.cli --project-root . build-stego-manifest --covers-manifest data/manifests/covers_master.csv --payload-manifest data/manifests/payload_manifest.csv
-python3 -m src.pipeline.cli --project-root . create-splits --covers-manifest data/manifests/covers_master.csv
 python3 -m src.pipeline.cli --project-root . run-embedding-stage --stego-manifest data/manifests/stego_manifest.csv
-python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv --splits-json results/splits/splits_grouped5fold.json
+python3 -m src.pipeline.cli --project-root . run-detectors --stego-manifest data/manifests/stego_manifest.csv
 python3 -m src.pipeline.cli --project-root . compute-metrics --predictions results/predictions/predictions.csv
 python3 -m src.pipeline.cli --project-root . plot-metrics
 ```
@@ -94,7 +90,7 @@ python3 -m src.pipeline.cli --project-root . plot-metrics
 
 ## Notes for Teammates
 
-- The default pipeline no longer includes SRM/SRM+EC training.
+- The default pipeline no longer includes SRM/SRM+EC.
 - The default DCT branch no longer uses QIM.
 - The default cover format is no longer RGB-only PNG across both branches.
 - If you implement any deferred method, follow the reference named in its docstring, not the old midway proposal.

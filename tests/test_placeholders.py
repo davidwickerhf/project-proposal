@@ -10,12 +10,6 @@ from src.detection.statistical import (
     rs_analysis_score,
     sample_pairs_score,
 )
-from src.detection.srnet import (
-    SRNetModelArtifact,
-    SRNetTrainingInput,
-    score_srnet_model,
-    train_srnet_model,
-)
 from src.embedding.dct import embed_dct_lsb_jpeg
 from src.embedding.encryption import (
     decrypt_payload_aes_256_cbc,
@@ -63,28 +57,6 @@ from src.embedding.lsb import embed_lsb
             calibration_chi_square_score,
             (b"jpeg-bytes",),
             "Calibration chi-square",
-        ),
-        (
-            train_srnet_model,
-            (
-                SRNetTrainingInput(
-                    method="lsb",
-                    fold=0,
-                    x_train=[[0.1, 0.2]],
-                    y_train=[0],
-                    x_val=[[0.1, 0.2]],
-                    y_val=[1],
-                ),
-            ),
-            "SRNet training",
-        ),
-        (
-            score_srnet_model,
-            (
-                SRNetModelArtifact(method="lsb", fold=0, model_state=None, hyperparams={}),
-                [[0.1, 0.2]],
-            ),
-            "SRNet inference",
         ),
     ],
 )

@@ -12,10 +12,10 @@ stay closed-loop (in-memory in/out), while this module:
 """
 
 import hashlib
-import json
 import random
 import secrets
 from pathlib import Path
+import json
 
 from src.common.contracts import ENCRYPTION_STATES, METHODS, PAYLOAD_LEVELS
 from src.data.images import (
@@ -47,11 +47,9 @@ from src.embedding.encryption import encrypt_payload_aes_256_cbc
 from src.embedding.lsb import embed_lsb
 from src.evaluation.metrics import (
     aggregate_by_groups,
-    summarize_fold_mean_interval,
     try_parse_score,
 )
 from src.evaluation.plots import generate_metrics_figures
-from src.evaluation.splits import FoldSplit, generate_grouped_5fold_splits
 from src.pipeline.config import PipelineConfig
 
 
@@ -84,10 +82,6 @@ class PipelineRunner:
             return str(path.relative_to(self.config.project_root))
         except ValueError:
             return str(path)
-
-    def _load_folds(self, splits_json_path: Path) -> list[FoldSplit]:
-        obj = json.loads(self._resolve_manifest_path(splits_json_path).read_text(encoding="utf-8"))
-        return [FoldSplit(**fold) for fold in obj["folds"]]
 
     def _detectors_for_method(self, method: str) -> list[str]:
         if method == "lsb":
@@ -253,28 +247,6 @@ class PipelineRunner:
         write_dataclass_csv(output_path, records)
         return output_path
 
-    def create_grouped_splits(
-        self,
-        covers_manifest_path: Path,
-        output_path: Path | None = None,
-    ) -> Path:
-        """Create grouped 5-fold split JSON from the covers manifest group IDs."""
-        cover_rows = read_rows_csv(covers_manifest_path)
-        group_ids = unique_group_ids(cover_rows)
-        folds = generate_grouped_5fold_splits(
-            group_ids=group_ids,
-            seed=self.config.split_seed,
-            val_groups_per_fold=50,
-        )
-        split_payload = {
-            "protocol": "grouped-5fold",
-            "group_unit": "group_id",
-            "folds": [fold.to_dict() for fold in folds],
-        }
-        path = output_path or (self.paths.splits_dir / "splits_grouped5fold.json")
-        write_json(path, split_payload)
-        return path
-
     def run_embedding_stage(
         self,
         stego_manifest_path: Path,
@@ -317,90 +289,80 @@ class PipelineRunner:
     def run_detector_stage(
         self,
         stego_manifest_path: Path,
-        splits_json_path: Path,
         output_path: Path | None = None,
         *,
         execute: bool = False,
         skip_unimplemented: bool = False,
     ) -> Path:
-        """Run detector scoring on fold test partitions and write predictions CSV.
+        """Run detector scoring over the full proposal-aligned evaluation table.
 
         Output schema:
-        fold, detector, group_id, source, method, payload_level, encryption, label, score
+        detector, group_id, source, method, payload_level, encryption, label, score
         """
         stego_rows = read_rows_csv(stego_manifest_path)
-        folds = self._load_folds(splits_json_path)
 
         pred_rows: list[dict[str, object]] = []
-        for fold in folds:
-            test_groups = set(fold.test_group_ids)
-            for row in stego_rows:
-                group_id = int(row["group_id"])
-                if group_id not in test_groups:
-                    continue
+        for row in stego_rows:
+            group_id = int(row["group_id"])
+            for detector in self._detectors_for_method(row["method"]):
+                pos_score = ""
+                if execute:
+                    try:
+                        pos_score = self._score_detector_row(
+                            detector=detector,
+                            label=1,
+                            row=row,
+                        )
+                    except NotImplementedError:
+                        if skip_unimplemented:
+                            continue
+                        raise
 
-                for detector in self._detectors_for_method(row["method"]):
-                    pos_score = ""
-                    if execute:
-                        try:
-                            pos_score = self._score_detector_row(
-                                detector=detector,
-                                label=1,
-                                row=row,
-                            )
-                        except NotImplementedError:
-                            if skip_unimplemented:
-                                continue
-                            raise
+                pred_rows.append(
+                    {
+                        "detector": detector,
+                        "group_id": group_id,
+                        "source": row["source"],
+                        "method": row["method"],
+                        "payload_level": row["payload_level"],
+                        "encryption": row["encryption"],
+                        "label": 1,
+                        "score": pos_score,
+                    }
+                )
 
-                    pred_rows.append(
-                        {
-                            "fold": fold.fold,
-                            "detector": detector,
-                            "group_id": group_id,
-                            "source": row["source"],
-                            "method": row["method"],
-                            "payload_level": row["payload_level"],
-                            "encryption": row["encryption"],
-                            "label": 1,
-                            "score": pos_score,
-                        }
-                    )
+                neg_score = ""
+                if execute:
+                    try:
+                        neg_score = self._score_detector_row(
+                            detector=detector,
+                            label=0,
+                            row=row,
+                        )
+                    except NotImplementedError:
+                        if skip_unimplemented:
+                            pred_rows.pop()
+                            continue
+                        raise
 
-                    neg_score = ""
-                    if execute:
-                        try:
-                            neg_score = self._score_detector_row(
-                                detector=detector,
-                                label=0,
-                                row=row,
-                            )
-                        except NotImplementedError:
-                            if skip_unimplemented:
-                                pred_rows.pop()
-                                continue
-                            raise
-
-                    pred_rows.append(
-                        {
-                            "fold": fold.fold,
-                            "detector": detector,
-                            "group_id": group_id,
-                            "source": row["source"],
-                            "method": row["method"],
-                            "payload_level": row["payload_level"],
-                            "encryption": row["encryption"],
-                            "label": 0,
-                            "score": neg_score,
-                        }
-                    )
+                pred_rows.append(
+                    {
+                        "detector": detector,
+                        "group_id": group_id,
+                        "source": row["source"],
+                        "method": row["method"],
+                        "payload_level": row["payload_level"],
+                        "encryption": row["encryption"],
+                        "label": 0,
+                        "score": neg_score,
+                    }
+                )
 
         out = output_path or (self.paths.predictions_dir / "predictions.csv")
         write_rows_csv(
             out,
             pred_rows,
             fieldnames=[
-                "fold",
                 "detector",
                 "group_id",
                 "source",
@@ -419,7 +381,7 @@ class PipelineRunner:
         metrics_dir: Path | None = None,
         quality_metrics_input: Path | None = None,
     ) -> dict[str, Path]:
-        """Compute fold/condition/source metrics from detector prediction rows."""
+        """Compute detector/condition/source metrics from prediction rows."""
         rows = read_rows_csv(predictions_path)
         scored_rows = [r for r in rows if try_parse_score(r.get("score", "")) is not None]
 
@@ -427,28 +389,21 @@ class PipelineRunner:
         out_dir = self._resolve_manifest_path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        fold_metrics = aggregate_by_groups(scored_rows, ["fold", "detector"])
+        detector_metrics = aggregate_by_groups(scored_rows, ["detector"])
         condition_metrics = aggregate_by_groups(
-            scored_rows, ["fold", "detector", "method", "payload_level", "encryption"]
+            scored_rows, ["detector", "method", "payload_level", "encryption"]
         )
-        source_metrics = aggregate_by_groups(scored_rows, ["fold", "detector", "source"])
-        pooled_summary = summarize_fold_mean_interval(
-            source_metrics,
-            metric_key="roc_auc",
-            group_keys_excluding_fold=["detector", "source"],
-        )
+        source_metrics = aggregate_by_groups(scored_rows, ["detector", "source"])
 
-        fold_path = out_dir / "fold_metrics.csv"
+        detector_path = out_dir / "detector_metrics.csv"
         condition_path = out_dir / "condition_metrics.csv"
-        source_path = out_dir / "source_contrasts.csv"
-        pooled_path = out_dir / "pooled_summary.csv"
+        source_path = out_dir / "source_metrics.csv"
         quality_path = out_dir / "quality_metrics.csv"
 
         write_rows_csv(
-            fold_path,
-            fold_metrics,
+            detector_path,
+            detector_metrics,
             fieldnames=[
-                "fold",
                 "detector",
                 "n_samples",
                 "n_pos",
@@ -463,7 +418,6 @@ class PipelineRunner:
             condition_path,
             condition_metrics,
             fieldnames=[
-                "fold",
                 "detector",
                 "method",
                 "payload_level",
@@ -481,7 +435,6 @@ class PipelineRunner:
             source_path,
             source_metrics,
             fieldnames=[
-                "fold",
                 "detector",
                 "source",
                 "n_samples",
@@ -493,12 +446,6 @@ class PipelineRunner:
                 "fpr_at_fixed_fnr",
             ],
         )
-        write_rows_csv(
-            pooled_path,
-            pooled_summary,
-            fieldnames=["detector", "source", "roc_auc_mean", "roc_auc_std", "n_folds"],
-        )
-
         quality_fieldnames = [
             "group_id",
             "source",
@@ -516,10 +463,9 @@ class PipelineRunner:
             write_rows_csv(quality_path, [], fieldnames=quality_fieldnames)
 
         return {
-            "fold_metrics": fold_path,
+            "detector_metrics": detector_path,
             "condition_metrics": condition_path,
-            "source_contrasts": source_path,
-            "pooled_summary": pooled_path,
+            "source_metrics": source_path,
             "quality_metrics": quality_path,
         }
 
@@ -560,14 +506,12 @@ class PipelineRunner:
             covers_manifest_path=resolved_covers,
             payload_manifest_path=payload_manifest,
         )
-        splits_json = self.create_grouped_splits(covers_manifest_path=resolved_covers)
         embedding_rows = self.run_embedding_stage(
             stego_manifest_path=stego_manifest,
             execute=execute_embeddings,
         )
         predictions = self.run_detector_stage(
             stego_manifest_path=stego_manifest,
-            splits_json_path=splits_json,
             execute=execute_detectors,
             skip_unimplemented=skip_unimplemented,
         )
@@ -579,7 +523,6 @@ class PipelineRunner:
         out: dict[str, Path | int] = {
             "payload_manifest": payload_manifest,
             "stego_manifest": stego_manifest,
-            "splits_json": splits_json,
             "predictions": predictions,
             "embedding_rows_processed": embedding_rows,
         }

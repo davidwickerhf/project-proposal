@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from src.data.manifests import write_rows_csv
@@ -70,31 +69,6 @@ def test_cli_run_embedding_stage_dry_run(monkeypatch, capsys, tmp_path: Path) ->
     assert "Embedding rows processed: 1" in out
 
 
-def test_cli_create_splits(monkeypatch, capsys, tmp_path: Path) -> None:
-    covers_manifest = write_cover_manifest(
-        tmp_path / "data" / "manifests" / "covers_master.csv",
-        group_ids=range(1, 501),
-    )
-    assert covers_manifest.exists()
-
-    monkeypatch.setattr(
-        "sys.argv",
-        [
-            "prog",
-            "--project-root",
-            str(tmp_path),
-            "create-splits",
-            "--covers-manifest",
-            "data/manifests/covers_master.csv",
-        ],
-    )
-    main()
-    out = capsys.readouterr().out
-
-    assert "Splits JSON" in out
-    assert (tmp_path / "results" / "splits" / "splits_grouped5fold.json").exists()
-
-
 def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
     stego_manifest = tmp_path / "data" / "manifests" / "stego_manifest.csv"
     write_rows_csv(
@@ -116,26 +90,6 @@ def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
         fieldnames=STEGO_FIELDNAMES,
     )
 
-    splits_json = tmp_path / "results" / "splits" / "splits_grouped5fold.json"
-    splits_json.parent.mkdir(parents=True, exist_ok=True)
-    splits_json.write_text(
-        json.dumps(
-            {
-                "protocol": "grouped-5fold",
-                "group_unit": "group_id",
-                "folds": [
-                    {
-                        "fold": 0,
-                        "train_group_ids": [],
-                        "val_group_ids": [],
-                        "test_group_ids": [1],
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -145,8 +99,6 @@ def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
             "run-detectors",
             "--stego-manifest",
             "data/manifests/stego_manifest.csv",
-            "--splits-json",
-            "results/splits/splits_grouped5fold.json",
         ],
     )
     main()
@@ -162,7 +114,6 @@ def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
         predictions,
         rows=[
             {
-                "fold": "0",
                 "detector": "rs",
                 "group_id": "1",
                 "source": "real",
@@ -173,7 +124,6 @@ def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
                 "score": "0.1",
             },
             {
-                "fold": "0",
                 "detector": "rs",
                 "group_id": "1",
                 "source": "real",
@@ -185,7 +135,6 @@ def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
             },
         ],
         fieldnames=[
-            "fold",
             "detector",
             "group_id",
             "source",
@@ -211,10 +160,10 @@ def test_cli_compute_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
     main()
     out = capsys.readouterr().out
 
-    assert "Fold metrics CSV" in out
-    assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()
+    assert "Detector metrics CSV" in out
+    assert (tmp_path / "results" / "metrics" / "detector_metrics.csv").exists()
     assert (tmp_path / "results" / "metrics" / "condition_metrics.csv").exists()
-    assert (tmp_path / "results" / "metrics" / "source_contrasts.csv").exists()
+    assert (tmp_path / "results" / "metrics" / "source_metrics.csv").exists()
 
 
 def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
@@ -226,10 +175,9 @@ def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
     metrics_dir.mkdir(parents=True, exist_ok=True)
 
     write_rows_csv(
-        metrics_dir / "source_contrasts.csv",
+        metrics_dir / "source_metrics.csv",
         rows=[
             {
-                "fold": "0",
                 "detector": "rs",
                 "source": "real",
                 "n_samples": "2",
@@ -242,7 +190,6 @@ def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
             }
         ],
         fieldnames=[
-            "fold",
             "detector",
             "source",
             "n_samples",
@@ -258,7 +205,6 @@ def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
         metrics_dir / "condition_metrics.csv",
         rows=[
             {
-                "fold": "0",
                 "detector": "rs",
                 "method": "lsb",
                 "payload_level": "low",
@@ -273,7 +219,6 @@ def test_cli_plot_metrics(monkeypatch, capsys, tmp_path: Path) -> None:
             }
         ],
         fieldnames=[
-            "fold",
             "detector",
             "method",
             "payload_level",
@@ -329,6 +274,5 @@ def test_cli_run_all_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
     assert "Embedding rows processed: 18000" in out
     assert (tmp_path / "data" / "manifests" / "payload_manifest.csv").exists()
     assert (tmp_path / "data" / "manifests" / "stego_manifest.csv").exists()
-    assert (tmp_path / "results" / "splits" / "splits_grouped5fold.json").exists()
     assert (tmp_path / "results" / "predictions" / "predictions.csv").exists()
-    assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()
+    assert (tmp_path / "results" / "metrics" / "detector_metrics.csv").exists()

@@ -57,7 +57,7 @@ def generate_metrics_figures(metrics_dir: Path, figures_dir: Path) -> dict[str, 
     figures_dir = figures_dir.resolve()
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    source_metrics_path = metrics_dir / "source_contrasts.csv"
+    source_metrics_path = metrics_dir / "source_metrics.csv"
     condition_metrics_path = metrics_dir / "condition_metrics.csv"
 
     source_fig_path = figures_dir / "auc_by_source_detector.png"
@@ -87,7 +87,7 @@ def generate_metrics_figures(metrics_dir: Path, figures_dir: Path) -> dict[str, 
         _write_placeholder_plot(
             source_fig_path,
             "AUC by Source and Detector",
-            "No numeric source_contrasts metrics available yet.",
+            "No numeric source_metrics available yet.",
         )
     else:
         det_sorted = sorted(detectors)

@@ -33,7 +33,6 @@ class PipelinePaths:
     data_root: Path
     results_root: Path
     manifests_dir: Path
-    splits_dir: Path
     predictions_dir: Path
     metrics_dir: Path
     figures_dir: Path
@@ -47,7 +46,6 @@ class PipelinePaths:
             data_root=data_root,
             results_root=results_root,
             manifests_dir=data_root / "manifests",
-            splits_dir=results_root / "splits",
             predictions_dir=results_root / "predictions",
             metrics_dir=results_root / "metrics",
             figures_dir=results_root / "figures",
@@ -113,7 +111,6 @@ class PipelinePaths:
                         )
 
         self.manifests_dir.mkdir(parents=True, exist_ok=True)
-        self.splits_dir.mkdir(parents=True, exist_ok=True)
         self.predictions_dir.mkdir(parents=True, exist_ok=True)
         self.metrics_dir.mkdir(parents=True, exist_ok=True)
         self.figures_dir.mkdir(parents=True, exist_ok=True)

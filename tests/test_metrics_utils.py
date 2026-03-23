@@ -7,7 +7,6 @@ from src.evaluation.metrics import (
     eer_score,
     fpr_at_fixed_fnr,
     roc_auc_score_binary,
-    summarize_fold_mean_interval,
 )
 
 
@@ -26,47 +25,34 @@ def test_binary_metric_functions_perfect_separation() -> None:
     assert metrics.n_neg == 2
 
 
-def test_aggregate_by_groups_and_fold_summary() -> None:
+def test_aggregate_by_groups() -> None:
     rows = [
         {
-            "fold": "0",
             "detector": "rs",
             "source": "real",
             "label": "0",
             "score": "0.1",
         },
         {
-            "fold": "0",
             "detector": "rs",
             "source": "real",
             "label": "1",
             "score": "0.9",
         },
         {
-            "fold": "1",
-            "detector": "rs",
+            "detector": "chi_square_spatial",
             "source": "real",
             "label": "0",
             "score": "0.2",
         },
         {
-            "fold": "1",
-            "detector": "rs",
+            "detector": "chi_square_spatial",
             "source": "real",
             "label": "1",
             "score": "0.8",
         },
     ]
 
-    agg = aggregate_by_groups(rows, ["fold", "detector", "source"])
+    agg = aggregate_by_groups(rows, ["detector", "source"])
     assert len(agg) == 2
     assert all(r["roc_auc"] == 1.0 for r in agg)
-
-    summary = summarize_fold_mean_interval(
-        agg,
-        metric_key="roc_auc",
-        group_keys_excluding_fold=["detector", "source"],
-    )
-    assert len(summary) == 1
-    assert summary[0]["roc_auc_mean"] == 1.0
-    assert summary[0]["n_folds"] == 2

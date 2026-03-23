@@ -13,7 +13,6 @@ from src.detection.statistical import (
     rs_analysis_score,
     sample_pairs_score,
 )
-from src.detection.srnet import SRNetTrainingInput, score_srnet_model, train_srnet_model
 from src.embedding.dct import embed_dct_lsb_jpeg
 from src.embedding.encryption import (
     decrypt_payload_aes_256_cbc,
@@ -110,31 +109,3 @@ def test_statistical_detectors_return_finite_deterministic_scores_spec() -> None
         _assert_float(a)
         _assert_float(b)
         assert a == b
-
-
-def test_srnet_train_score_shape_and_determinism_spec() -> None:
-    training_input = SRNetTrainingInput(
-        method="lsb",
-        fold=0,
-        x_train=[[-2.0, -1.0], [-1.5, -0.8], [1.2, 0.9], [2.0, 1.1]],
-        y_train=[0, 0, 1, 1],
-        x_val=[[-1.2, -1.1], [1.4, 1.2]],
-        y_val=[0, 1],
-        random_seed=42,
-    )
-
-    model_a = _call_or_xfail(train_srnet_model, training_input)
-    model_b = _call_or_xfail(train_srnet_model, training_input)
-
-    assert model_a.method == "lsb"
-    assert model_a.fold == 0
-    assert model_b.method == model_a.method
-
-    x_test = [[-1.0, -0.9], [1.5, 1.3], [0.0, 0.1]]
-    scores_a = _call_or_xfail(score_srnet_model, model_a, x_test)
-    scores_b = _call_or_xfail(score_srnet_model, model_b, x_test)
-
-    assert isinstance(scores_a, list)
-    assert len(scores_a) == len(x_test)
-    assert all(isinstance(s, float) for s in scores_a)
-    assert scores_a == scores_b

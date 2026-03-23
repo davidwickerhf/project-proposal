@@ -39,7 +39,7 @@ def test_blueprint_cardinality_and_pairing_contract(project_root: Path) -> None:
     assert set(per_cover.values()) == {12}
 
 
-def test_split_and_detector_applicability_contract(project_root: Path) -> None:
+def test_detector_applicability_contract(project_root: Path) -> None:
     cfg = PipelineConfig(project_root=project_root, n_groups=500)
     runner = PipelineRunner(cfg)
 
@@ -49,11 +49,6 @@ def test_split_and_detector_applicability_contract(project_root: Path) -> None:
     )
     payload_manifest = runner.build_payload_manifest(covers_manifest_path=covers_manifest)
     stego_manifest = runner.build_stego_manifest(covers_manifest, payload_manifest)
-
-    splits_json = runner.create_grouped_splits(covers_manifest)
-    split_rows = runner._load_folds(splits_json)
-
-    assert len(split_rows) == 5
 
     stego_rows = read_rows_csv(stego_manifest)
     lsb_rows = [r for r in stego_rows if r["method"] == "lsb"]

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -73,27 +72,6 @@ def test_standardize_covers_from_index_writes_outputs(project_root: Path, runner
     assert not Path(covers[0]["frequency_path"]).is_absolute()
 
 
-def test_create_grouped_splits_locked_design(project_root: Path) -> None:
-    cfg = PipelineConfig(project_root=project_root)
-    local_runner = PipelineRunner(cfg)
-
-    covers_manifest = write_cover_manifest(
-        project_root / "data" / "manifests" / "covers_master.csv",
-        group_ids=range(1, 501),
-    )
-
-    splits_json = local_runner.create_grouped_splits(covers_manifest_path=covers_manifest)
-    split_obj = json.loads(splits_json.read_text(encoding="utf-8"))
-
-    assert split_obj["protocol"] == "grouped-5fold"
-    assert len(split_obj["folds"]) == 5
-
-    for fold in split_obj["folds"]:
-        assert len(fold["train_group_ids"]) == 350
-        assert len(fold["val_group_ids"]) == 50
-        assert len(fold["test_group_ids"]) == 100
-
-
 def test_build_payload_manifest_validates_group_count(project_root: Path, runner: PipelineRunner) -> None:
     covers_manifest = write_cover_manifest(
         project_root / "data" / "manifests" / "covers_master.csv",
@@ -118,13 +96,13 @@ def test_stable_iv_is_deterministic_and_16_bytes() -> None:
 def test_embed_params_json_contract(project_root: Path) -> None:
     runner = PipelineRunner(PipelineConfig(project_root=project_root, n_groups=4))
 
-    lsb_low = json.loads(runner._embed_params_json("lsb", "low"))
+    lsb_low = __import__("json").loads(runner._embed_params_json("lsb", "low"))
     assert lsb_low["method"] == "lsb"
     assert lsb_low["bit_depth"] == 1
     assert lsb_low["fill_rate"] == 0.25
     assert lsb_low["scan_order"] == "row_major"
 
-    dct_high = json.loads(runner._embed_params_json("dct", "high"))
+    dct_high = __import__("json").loads(runner._embed_params_json("dct", "high"))
     assert dct_high["method"] == "dct_lsb_jpeg"
     assert dct_high["fill_rate"] == 0.75
     assert dct_high["jpeg_quality"] == 95

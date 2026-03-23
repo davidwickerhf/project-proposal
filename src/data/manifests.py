@@ -49,18 +49,6 @@ class StegoRecord:
     embed_params: str
     seed: int
 
-
-@dataclass(frozen=True)
-class ExtensionJobRecord:
-    fold: int
-    method: str
-    detector: str
-    train_groups: int
-    val_groups: int
-    test_groups: int
-    split_ref: str
-
-
 def write_dataclass_csv(path: Path, records: Iterable[Any]) -> None:
     rows = [asdict(r) for r in records]
     path.parent.mkdir(parents=True, exist_ok=True)

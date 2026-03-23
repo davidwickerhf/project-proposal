@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from statistics import mean, pstdev
 from typing import Iterable
 
 
@@ -181,36 +180,3 @@ def aggregate_by_groups(
     out.sort(key=lambda r: tuple(str(r[k]) for k in group_keys))
     return out
 
-
-def summarize_fold_mean_interval(
-    rows: list[dict[str, object]],
-    metric_key: str,
-    group_keys_excluding_fold: list[str],
-) -> list[dict[str, object]]:
-    """Compute fold-mean and spread summary for one metric key.
-
-    Uses population std as a simple interval proxy in the scaffold.
-    """
-    grouped: dict[tuple[str, ...], list[float]] = {}
-    for row in rows:
-        if metric_key not in row:
-            continue
-        key = tuple(str(row[k]) for k in group_keys_excluding_fold)
-        grouped.setdefault(key, []).append(float(row[metric_key]))
-
-    out: list[dict[str, object]] = []
-    for key, values in grouped.items():
-        if not values:
-            continue
-        summary = {k: v for k, v in zip(group_keys_excluding_fold, key)}
-        summary.update(
-            {
-                f"{metric_key}_mean": mean(values),
-                f"{metric_key}_std": pstdev(values) if len(values) > 1 else 0.0,
-                "n_folds": len(values),
-            }
-        )
-        out.append(summary)
-
-    out.sort(key=lambda r: tuple(str(r[k]) for k in group_keys_excluding_fold))
-    return out

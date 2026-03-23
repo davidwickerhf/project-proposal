@@ -80,6 +80,5 @@ def test_ensure_layout_creates_expected_directories(project_root: Path) -> None:
                     assert paths.stego_dir(method, payload, encryption, source).is_dir()
 
     assert paths.manifests_dir.is_dir()
-    assert paths.splits_dir.is_dir()
     assert paths.predictions_dir.is_dir()
     assert paths.metrics_dir.is_dir()

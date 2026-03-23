@@ -11,6 +11,5 @@ The notebooks should be read as helpers around the final proposal, not the old m
 
 ## Current Methodology Notes
 
-- mainline detector work is training-free
-- SRNet, if explored, should live in a separate extension notebook or section
+- mainline detector work uses classical statistical detectors only
 - use grayscale PNG/JPEG branch outputs, not a single RGB PNG carrier format
