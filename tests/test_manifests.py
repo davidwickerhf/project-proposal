@@ -23,7 +23,8 @@ def test_write_and_read_dataclass_csv(tmp_path: Path) -> None:
             orig_id="abc",
             caption_id="cap1",
             caption_text="a caption",
-            image_path="/tmp/g0001.png",
+            spatial_path="/tmp/g0001.png",
+            frequency_path="/tmp/g0001.jpg",
             qc_pass=True,
             qc_score=0.95,
             seed=42,
@@ -35,7 +36,8 @@ def test_write_and_read_dataclass_csv(tmp_path: Path) -> None:
             orig_id="def",
             caption_id="cap2",
             caption_text="another caption",
-            image_path="/tmp/g0002.png",
+            spatial_path="/tmp/g0002.png",
+            frequency_path="/tmp/g0002.jpg",
             qc_pass=False,
             qc_score=0.10,
             seed=100,
@@ -49,6 +51,8 @@ def test_write_and_read_dataclass_csv(tmp_path: Path) -> None:
     assert rows[0]["group_id"] == "1"
     assert rows[0]["source"] == "real"
     assert rows[1]["dataset"] == "sdxl"
+    assert rows[0]["spatial_path"] == "/tmp/g0001.png"
+    assert rows[1]["frequency_path"] == "/tmp/g0002.jpg"
 
 
 def test_write_dataclass_csv_empty_writes_empty_file(tmp_path: Path) -> None:

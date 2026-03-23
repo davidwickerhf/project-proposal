@@ -16,7 +16,8 @@ def test_generate_ml_covers_stub_creates_images_and_manifests(tmp_path: Path) ->
             "orig_id": "orig-1",
             "caption_id": "cap-1",
             "caption_text": "A person riding a bicycle through a busy city street.",
-            "real_image_path": "data/covers/real/g0001__src-real.png",
+            "real_spatial_path": "data/covers/spatial/real/g0001__src-real.png",
+            "real_frequency_path": "data/covers/frequency/real/g0001__src-real.jpg",
         },
         {
             "group_id": "2",
@@ -24,7 +25,8 @@ def test_generate_ml_covers_stub_creates_images_and_manifests(tmp_path: Path) ->
             "orig_id": "orig-2",
             "caption_id": "cap-2",
             "caption_text": "Two children playing football near a metal fence in a park.",
-            "real_image_path": "data/covers/real/g0002__src-real.png",
+            "real_spatial_path": "data/covers/spatial/real/g0002__src-real.png",
+            "real_frequency_path": "data/covers/frequency/real/g0002__src-real.jpg",
         },
         {
             "group_id": "3",
@@ -32,7 +34,8 @@ def test_generate_ml_covers_stub_creates_images_and_manifests(tmp_path: Path) ->
             "orig_id": "orig-3",
             "caption_id": "cap-3",
             "caption_text": "A chef preparing food in a restaurant kitchen.",
-            "real_image_path": "data/covers/real/g0003__src-real.png",
+            "real_spatial_path": "data/covers/spatial/real/g0003__src-real.png",
+            "real_frequency_path": "data/covers/frequency/real/g0003__src-real.jpg",
         },
     ]
     write_rows_csv(
@@ -44,7 +47,8 @@ def test_generate_ml_covers_stub_creates_images_and_manifests(tmp_path: Path) ->
             "orig_id",
             "caption_id",
             "caption_text",
-            "real_image_path",
+            "real_spatial_path",
+            "real_frequency_path",
         ],
     )
 
@@ -72,10 +76,14 @@ def test_generate_ml_covers_stub_creates_images_and_manifests(tmp_path: Path) ->
     assert {r["dataset"] for r in b_rows} == {"PixArt-alpha"}
 
     for row in ml_rows:
-        out_path = tmp_path / row["image_path"]
-        assert out_path.exists()
-        assert out_path.name.startswith("g") and out_path.name.endswith(".png")
-        assert not Path(row["image_path"]).is_absolute()
+        spatial_path = tmp_path / row["spatial_path"]
+        frequency_path = tmp_path / row["frequency_path"]
+        assert spatial_path.exists()
+        assert frequency_path.exists()
+        assert spatial_path.name.startswith("g") and spatial_path.name.endswith(".png")
+        assert frequency_path.name.startswith("g") and frequency_path.name.endswith(".jpg")
+        assert not Path(row["spatial_path"]).is_absolute()
+        assert not Path(row["frequency_path"]).is_absolute()
 
 
 def test_generate_ml_covers_stub_is_deterministic_for_same_seed(tmp_path: Path) -> None:
@@ -91,7 +99,8 @@ def test_generate_ml_covers_stub_is_deterministic_for_same_seed(tmp_path: Path) 
                 "orig_id": "orig-1",
                 "caption_id": "cap-1",
                 "caption_text": "A red bus driving through downtown traffic.",
-                "real_image_path": "data/covers/real/g0001__src-real.png",
+                "real_spatial_path": "data/covers/spatial/real/g0001__src-real.png",
+                "real_frequency_path": "data/covers/frequency/real/g0001__src-real.jpg",
             }
         ],
         fieldnames=[
@@ -100,7 +109,8 @@ def test_generate_ml_covers_stub_is_deterministic_for_same_seed(tmp_path: Path) 
             "orig_id",
             "caption_id",
             "caption_text",
-            "real_image_path",
+            "real_spatial_path",
+            "real_frequency_path",
         ],
     )
 
@@ -113,7 +123,9 @@ def test_generate_ml_covers_stub_is_deterministic_for_same_seed(tmp_path: Path) 
         image_size=(512, 512),
         seed_base=77,
     )
-    first_bytes = (tmp_path / "data/covers/ml_a/g0001__src-ml_a.png").read_bytes()
+    first_bytes = (
+        tmp_path / "data/covers/spatial/ml_a/g0001__src-ml_a.png"
+    ).read_bytes()
 
     generate_ml_covers_from_prompts(
         project_root=tmp_path,
@@ -124,6 +136,8 @@ def test_generate_ml_covers_stub_is_deterministic_for_same_seed(tmp_path: Path) 
         image_size=(512, 512),
         seed_base=77,
     )
-    second_bytes = (tmp_path / "data/covers/ml_a/g0001__src-ml_a.png").read_bytes()
+    second_bytes = (
+        tmp_path / "data/covers/spatial/ml_a/g0001__src-ml_a.png"
+    ).read_bytes()
 
     assert first_bytes == second_bytes

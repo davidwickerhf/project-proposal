@@ -39,7 +39,7 @@ def test_blueprint_cardinality_and_pairing_contract(project_root: Path) -> None:
     assert set(per_cover.values()) == {12}
 
 
-def test_split_leakage_and_detector_applicability_contract(project_root: Path) -> None:
+def test_split_and_detector_applicability_contract(project_root: Path) -> None:
     cfg = PipelineConfig(project_root=project_root, n_groups=500)
     runner = PipelineRunner(cfg)
 
@@ -51,18 +51,14 @@ def test_split_leakage_and_detector_applicability_contract(project_root: Path) -
     stego_manifest = runner.build_stego_manifest(covers_manifest, payload_manifest)
 
     splits_json = runner.create_grouped_splits(covers_manifest)
-    jobs_csv = runner.build_srm_training_jobs(splits_json)
+    split_rows = runner._load_folds(splits_json)
 
-    # SRM scope: exactly 2 methods x 5 folds.
-    jobs_rows = read_rows_csv(jobs_csv)
-    assert len(jobs_rows) == 10
-    assert {row["method"] for row in jobs_rows} == {"lsb", "dct"}
+    assert len(split_rows) == 5
 
-    # Detector applicability invariants for pipeline rows.
     stego_rows = read_rows_csv(stego_manifest)
     lsb_rows = [r for r in stego_rows if r["method"] == "lsb"]
     dct_rows = [r for r in stego_rows if r["method"] == "dct"]
 
     assert len(lsb_rows) == len(dct_rows) == 9000
-    assert all(r["method"] == "lsb" for r in lsb_rows)
-    assert all(r["method"] == "dct" for r in dct_rows)
+    assert runner._detectors_for_method("lsb") == ["rs", "chi_square_spatial", "sample_pairs"]
+    assert runner._detectors_for_method("dct") == ["chi_square_dct", "calibration_chi_square"]

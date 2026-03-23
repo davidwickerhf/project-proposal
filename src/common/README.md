@@ -1,22 +1,21 @@
 # `src/common` Guide
 
-`common/` defines shared contracts used by every stage.
+`common/` owns the proposal-locked path and naming contracts.
 
-## Key File
+## What It Defines
 
-- `contracts.py`
-
-## What It Owns
-
-- Allowed categorical values:
+- allowed values for:
   - `source in {real, ml_a, ml_b}`
   - `method in {lsb, dct}`
   - `payload_level in {low, medium, high}`
   - `encryption in {plain, encrypted}`
-- Filename constructors for covers, payloads, and stegos.
-- Canonical path builder (`PipelinePaths`) for `data/` and `results/`.
-- Layout creation (`ensure_layout`).
+- cover-branch mapping:
+  - `lsb -> spatial`
+  - `dct -> frequency`
+- canonical filenames for:
+  - spatial covers (`.png`)
+  - frequency covers (`.jpg`)
+  - payloads (`.bin`)
+  - stegos (`.png` for `lsb`, `.jpg` for `dct`)
 
-## Implementation Rule
-
-Do not duplicate naming/path logic in other modules. Import and reuse these helpers to avoid drift between stages.
+Do not rebuild path logic elsewhere in the repo.

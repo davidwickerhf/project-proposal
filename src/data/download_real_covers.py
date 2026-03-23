@@ -12,8 +12,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-from src.common.contracts import PipelinePaths, cover_filename
-from src.data.images import standardize_and_save
+from src.common.contracts import PipelinePaths
+from src.data.images import standardize_and_save_variants
 from src.data.manifests import write_rows_csv
 
 
@@ -47,7 +47,8 @@ class DownloadRecord:
     caption_id: str
     caption_text: str
     raw_image_path: str
-    image_path: str
+    spatial_path: str
+    frequency_path: str
     qc_pass: bool
     qc_score: float
     seed: int
@@ -320,7 +321,8 @@ def _build_rows(records: list[DownloadRecord]) -> tuple[list[dict[str, object]],
             "orig_id": r.orig_id,
             "caption_id": r.caption_id,
             "caption_text": r.caption_text,
-            "image_path": r.image_path,
+            "spatial_path": r.spatial_path,
+            "frequency_path": r.frequency_path,
             "qc_pass": str(r.qc_pass).lower(),
             "qc_score": r.qc_score,
             "seed": r.seed,
@@ -335,7 +337,8 @@ def _build_rows(records: list[DownloadRecord]) -> tuple[list[dict[str, object]],
             "orig_id": r.orig_id,
             "caption_id": r.caption_id,
             "caption_text": r.caption_text,
-            "real_image_path": r.image_path,
+            "real_spatial_path": r.spatial_path,
+            "real_frequency_path": r.frequency_path,
         }
         for r in records
     ]
@@ -406,8 +409,15 @@ def download_real_covers(
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         raw_path.write_bytes(fetch_bytes(candidate.image_url))
 
-        cover_path = paths.covers_dir("real") / cover_filename(group_id, "real")
-        standardize_and_save(raw_path, cover_path, size=image_size)
+        spatial_path = paths.cover_path(group_id, "real", "spatial")
+        frequency_path = paths.cover_path(group_id, "real", "frequency")
+        standardize_and_save_variants(
+            raw_path,
+            spatial_path,
+            frequency_path,
+            size=image_size,
+            jpeg_quality=95,
+        )
 
         records.append(
             DownloadRecord(
@@ -418,7 +428,8 @@ def download_real_covers(
                 caption_id=candidate.caption_id,
                 caption_text=candidate.caption_text,
                 raw_image_path=_to_project_relative(project_root, raw_path),
-                image_path=_to_project_relative(project_root, cover_path),
+                spatial_path=_to_project_relative(project_root, spatial_path),
+                frequency_path=_to_project_relative(project_root, frequency_path),
                 qc_pass=True,
                 qc_score=1.0,
                 seed=seed,
@@ -459,7 +470,8 @@ def download_real_covers(
             "orig_id",
             "caption_id",
             "caption_text",
-            "image_path",
+            "spatial_path",
+            "frequency_path",
             "qc_pass",
             "qc_score",
             "seed",
@@ -475,7 +487,8 @@ def download_real_covers(
             "orig_id",
             "caption_id",
             "caption_text",
-            "real_image_path",
+            "real_spatial_path",
+            "real_frequency_path",
         ],
     )
 

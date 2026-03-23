@@ -1,33 +1,20 @@
 # `src/evaluation` Guide
 
-`evaluation/` contains experiment split and scoring utilities.
-
-## Files
-
-- `splits.py`
-  - grouped 5-fold split generation by `group_id`
-  - returns train/val/test group lists for each fold
-- `metrics.py`
-  - binary metric utilities and grouped aggregations (AUC, EER, etc.)
-- `plots.py`
-  - generates summary PNG figures from `results/metrics/*.csv`
+`evaluation/` contains split generation, metric aggregation, and plotting helpers.
 
 ## Locked Split Design
 
-- Total groups: `500`
-- Folds: `5`
-- Per fold:
-  - test groups: `100`
+- total groups: `500`
+- folds: `5`
+- per fold:
+  - train groups: `350`
   - validation groups: `50`
-  - training groups: `350`
+  - test groups: `100`
 
-## Why Grouped Splits
+All three source variants for the same `group_id` stay in the same partition to prevent leakage.
 
-All source variants (`real`, `ml_a`, `ml_b`) for the same `group_id` must stay in the same partition to prevent leakage.
+## Outputs
 
-## Downstream Usage
-
-- Pipeline writes split artifact: `results/splits/splits_grouped5fold.json`
-- SRM training-job planner reads this split and expands per-method jobs.
-- Metrics stage writes aggregate tables to `results/metrics/`.
-- Plot stage writes figures to `results/figures/`.
+- `results/splits/splits_grouped5fold.json`
+- `results/metrics/*.csv`
+- `results/figures/*.png`

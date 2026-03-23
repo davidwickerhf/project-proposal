@@ -24,8 +24,8 @@ from typing import Protocol
 
 from PIL import Image
 
-from src.common.contracts import PipelinePaths, cover_filename
-from src.data.images import save_png, standardize_image
+from src.common.contracts import PipelinePaths
+from src.data.images import save_jpeg, save_png, standardize_image
 from src.data.manifests import read_rows_csv, write_json, write_rows_csv
 
 
@@ -40,7 +40,8 @@ FIELDNAMES = [
     "orig_id",
     "caption_id",
     "caption_text",
-    "image_path",
+    "spatial_path",
+    "frequency_path",
     "qc_pass",
     "qc_score",
     "seed",
@@ -184,7 +185,8 @@ def _validate_prompt_schema(rows: list[dict[str, str]]) -> None:
         "orig_id",
         "caption_id",
         "caption_text",
-        "real_image_path",
+        "real_spatial_path",
+        "real_frequency_path",
     }
     if not rows:
         raise ValueError("generation_prompts.csv has no rows.")
@@ -202,7 +204,8 @@ def _build_cover_row(
     orig_id: str,
     caption_id: str,
     caption_text: str,
-    image_path_rel: str,
+    spatial_path_rel: str,
+    frequency_path_rel: str,
     seed: int,
 ) -> dict[str, object]:
     return {
@@ -212,7 +215,8 @@ def _build_cover_row(
         "orig_id": orig_id,
         "caption_id": caption_id,
         "caption_text": caption_text,
-        "image_path": image_path_rel,
+        "spatial_path": spatial_path_rel,
+        "frequency_path": frequency_path_rel,
         "qc_pass": "true",
         "qc_score": 1.0,
         "seed": seed,
@@ -300,8 +304,10 @@ def generate_ml_covers_from_prompts(
             )
 
             standardized = standardize_image(generated, size=image_size)
-            out_path = paths.cover_path(group_id, source)  # type: ignore[arg-type]
-            save_png(standardized, out_path)
+            spatial_path = paths.cover_path(group_id, source, "spatial")  # type: ignore[arg-type]
+            frequency_path = paths.cover_path(group_id, source, "frequency")  # type: ignore[arg-type]
+            save_png(standardized, spatial_path)
+            save_jpeg(standardized, frequency_path)
 
             manifest_row = _build_cover_row(
                 group_id=group_id,
@@ -310,7 +316,8 @@ def generate_ml_covers_from_prompts(
                 orig_id=row["orig_id"],
                 caption_id=row["caption_id"],
                 caption_text=row["caption_text"],
-                image_path_rel=_to_project_relative(project_root, out_path),
+                spatial_path_rel=_to_project_relative(project_root, spatial_path),
+                frequency_path_rel=_to_project_relative(project_root, frequency_path),
                 seed=seed,
             )
             rows_ml_all.append(manifest_row)

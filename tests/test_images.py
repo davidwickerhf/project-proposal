@@ -6,10 +6,12 @@ from PIL import Image
 
 from src.data.images import (
     center_crop_to_square,
+    list_jpegs,
     list_pngs,
     load_image,
+    save_jpeg,
     save_png,
-    standardize_and_save,
+    standardize_and_save_variants,
     standardize_image,
 )
 
@@ -20,34 +22,41 @@ def test_center_crop_to_square_uses_min_side() -> None:
     assert cropped.size == (9, 9)
 
 
-def test_standardize_image_converts_to_rgb_and_target_size() -> None:
-    image = Image.new("L", (100, 40), color=127)
+def test_standardize_image_converts_to_grayscale_and_target_size() -> None:
+    image = Image.new("RGB", (100, 40), color=(10, 20, 30))
     standardized = standardize_image(image, size=(64, 64))
-    assert standardized.mode == "RGB"
+    assert standardized.mode == "L"
     assert standardized.size == (64, 64)
 
 
-def test_standardize_and_save_writes_png(tmp_path: Path) -> None:
+def test_standardize_and_save_variants_writes_png_and_jpeg(tmp_path: Path) -> None:
     input_path = tmp_path / "raw.jpg"
-    output_path = tmp_path / "out" / "final.png"
+    spatial_path = tmp_path / "out" / "final.png"
+    frequency_path = tmp_path / "out" / "final.jpg"
 
     Image.new("RGB", (32, 48), color=(10, 20, 30)).save(input_path)
-    standardize_and_save(input_path=input_path, output_path=output_path, size=(16, 16))
+    standardize_and_save_variants(
+        input_path=input_path,
+        spatial_output_path=spatial_path,
+        frequency_output_path=frequency_path,
+        size=(16, 16),
+    )
 
-    assert output_path.exists()
-    saved = load_image(output_path)
-    assert saved.size == (16, 16)
-    assert saved.format is None  # copy() detaches format metadata
+    assert spatial_path.exists()
+    assert frequency_path.exists()
+    assert load_image(spatial_path).size == (16, 16)
+    assert load_image(frequency_path).size == (16, 16)
 
 
-def test_save_png_and_list_pngs(tmp_path: Path) -> None:
+def test_save_png_save_jpeg_and_listing(tmp_path: Path) -> None:
     out_dir = tmp_path / "images"
     a = out_dir / "a.png"
     b = out_dir / "b.png"
     c = out_dir / "c.jpg"
 
-    save_png(Image.new("RGB", (4, 4), color=(1, 2, 3)), a)
-    save_png(Image.new("RGB", (4, 4), color=(4, 5, 6)), b)
-    Image.new("RGB", (4, 4), color=(7, 8, 9)).save(c)
+    save_png(Image.new("L", (4, 4), color=1), a)
+    save_png(Image.new("L", (4, 4), color=2), b)
+    save_jpeg(Image.new("L", (4, 4), color=3), c)
 
     assert list(list_pngs(out_dir)) == [a, b]
+    assert list(list_jpegs(out_dir)) == [c]

@@ -172,7 +172,8 @@ def test_build_rows_outputs_expected_schemas() -> None:
             caption_id="coco-0001",
             caption_text="A detailed caption with enough words for this test case.",
             raw_image_path="/tmp/raw.jpg",
-            image_path="/tmp/cover.png",
+            spatial_path="/tmp/cover.png",
+            frequency_path="/tmp/cover.jpg",
             qc_pass=True,
             qc_score=1.0,
             seed=42,
@@ -199,7 +200,8 @@ def test_build_rows_outputs_expected_schemas() -> None:
         "orig_id",
         "caption_id",
         "caption_text",
-        "image_path",
+        "spatial_path",
+        "frequency_path",
         "qc_pass",
         "qc_score",
         "seed",
@@ -210,7 +212,8 @@ def test_build_rows_outputs_expected_schemas() -> None:
         "orig_id",
         "caption_id",
         "caption_text",
-        "real_image_path",
+        "real_spatial_path",
+        "real_frequency_path",
     }
 
 
@@ -269,22 +272,27 @@ def test_download_real_covers_end_to_end_with_mocks(tmp_path: Path) -> None:
     datasets = {row["dataset"] for row in covers}
     assert datasets == {"COCO", "Flickr30k"}
 
-    # Naming contract for canonical real covers.
-    names = [Path(row["image_path"]).name for row in covers]
-    assert names == ["g0001__src-real.png", "g0002__src-real.png", "g0003__src-real.png"]
+    spatial_names = [Path(row["spatial_path"]).name for row in covers]
+    frequency_names = [Path(row["frequency_path"]).name for row in covers]
+    assert spatial_names == ["g0001__src-real.png", "g0002__src-real.png", "g0003__src-real.png"]
+    assert frequency_names == ["g0001__src-real.jpg", "g0002__src-real.jpg", "g0003__src-real.jpg"]
 
     for row in covers:
-        out_path = tmp_path / row["image_path"]
-        assert out_path.exists()
-        image = load_image(out_path)
-        assert image.size == (512, 512)
-        assert not Path(row["image_path"]).is_absolute()
+        spatial_path = tmp_path / row["spatial_path"]
+        frequency_path = tmp_path / row["frequency_path"]
+        assert spatial_path.exists()
+        assert frequency_path.exists()
+        assert load_image(spatial_path).size == (512, 512)
+        assert load_image(frequency_path).size == (512, 512)
+        assert not Path(row["spatial_path"]).is_absolute()
+        assert not Path(row["frequency_path"]).is_absolute()
 
     for row in raw_index:
         assert not Path(row["raw_image_path"]).is_absolute()
 
     for row in prompts:
-        assert not Path(row["real_image_path"]).is_absolute()
+        assert not Path(row["real_spatial_path"]).is_absolute()
+        assert not Path(row["real_frequency_path"]).is_absolute()
 
     summary = json.loads(outputs["summary"].read_text(encoding="utf-8"))
     assert summary["total_groups"] == 3

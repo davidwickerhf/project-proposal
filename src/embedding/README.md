@@ -1,30 +1,22 @@
 # `src/embedding` Guide
 
-`embedding/` implements payload transformation and stego generation.
+`embedding/` contains deferred implementation stubs for the final proposal.
 
-## Deferred Files and Contracts
+## Mainline Functions
 
-- `encryption.py`
-  - `encrypt_payload_aes_256_cbc(payload, key, iv) -> bytes`
-  - `decrypt_payload_aes_256_cbc(ciphertext, key, iv) -> bytes`
-- `lsb.py`
-  - `embed_lsb(cover_image, payload_bytes, payload_level, prng_key) -> Image`
-- `dct.py`
-  - `embed_dct_qim(cover_image, payload_bytes, payload_level, delta) -> Image`
+- `encrypt_payload_aes_256_cbc(payload, key, iv) -> bytes`
+- `decrypt_payload_aes_256_cbc(ciphertext, key, iv) -> bytes`
+- `embed_lsb(cover_image, payload_bytes, fill_rate, bit_depth=1) -> Image`
+- `embed_dct_lsb_jpeg(cover_jpeg_bytes, payload_bytes, fill_rate, jpeg_quality=95) -> bytes`
 
-Closed-loop contract (all deferred functions):
-- Inputs are in-memory objects only (`bytes`, `PIL.Image.Image`, scalars).
-- Outputs are return values only (no hidden writes).
-- No direct file reads/writes inside these functions.
+## Locked Methodology
 
-## Implementation Requirements
+- spatial branch:
+  - grayscale sequential row-major LSB replacement
+  - main analysis uses `bit_depth=1`
+- frequency branch:
+  - JSteg-style DCT-LSB on non-zero quantized AC coefficients
+  - JPEG quality locked to `95`
+  - no re-quantization after coefficient edits
 
-- Keep output image in canonical format constraints (`RGB`, `512x512`, PNG save-safe).
-- Respect payload-level policies (`low`, `medium`, `high`) from pipeline params.
-- Use deterministic behavior under fixed seeds/keys.
-- Do not change filename/path logic here; it is owned by `common/contracts.py`.
-
-## Integration Notes
-
-- Runner orchestrates method selection and manifest joins.
-- `run-embedding-stage --execute` will call these functions directly.
+Each stub docstring names the exact paper to follow during implementation.

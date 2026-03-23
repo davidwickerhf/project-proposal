@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-"""CLI entrypoint for running pipeline stages.
-
-Design notes:
-- CLI is intentionally thin; all stage logic lives in `PipelineRunner`.
-- Inputs can be absolute or project-root-relative paths.
-- Command outputs print artifact locations for easy scripting.
-"""
+"""CLI entrypoint for the proposal-aligned pipeline stages."""
 
 import argparse
 from pathlib import Path
@@ -38,7 +32,7 @@ def _parser() -> argparse.ArgumentParser:
 
     p_std = sub.add_parser(
         "standardize-covers",
-        help="Read raw cover index CSV and write canonical covers_master.csv + standardized PNG covers.",
+        help="Read raw cover index CSV and write grayscale PNG/JPEG cover variants plus covers_master.csv.",
     )
     p_std.add_argument(
         "--input-index",
@@ -57,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
     p_payload.add_argument(
         "--write-files",
         action="store_true",
-        help="Write payload binary files. Encrypted branch calls placeholder AES implementation.",
+        help="Write payload binary files. Encrypted rows call the AES placeholder.",
     )
 
     p_stego = sub.add_parser("build-stego-manifest", help="Write stego manifest.")
@@ -66,12 +60,6 @@ def _parser() -> argparse.ArgumentParser:
 
     p_split = sub.add_parser("create-splits", help="Create grouped 5-fold split JSON.")
     p_split.add_argument("--covers-manifest", type=Path, required=True)
-
-    p_jobs = sub.add_parser(
-        "build-training-jobs",
-        help="Write SRM per-method fold job manifest from split JSON.",
-    )
-    p_jobs.add_argument("--splits-json", type=Path, required=True)
 
     p_embed = sub.add_parser(
         "run-embedding-stage",
@@ -94,11 +82,6 @@ def _parser() -> argparse.ArgumentParser:
         "--execute",
         action="store_true",
         help="Actually invoke detector functions; default writes dry-run rows with empty scores.",
-    )
-    p_det.add_argument(
-        "--disable-srm",
-        action="store_true",
-        help="Exclude SRM detector rows from execution/output.",
     )
     p_det.add_argument(
         "--skip-unimplemented",
@@ -151,11 +134,6 @@ def _parser() -> argparse.ArgumentParser:
         help="Execute detector functions (disabled by default).",
     )
     p_all.add_argument(
-        "--disable-srm",
-        action="store_true",
-        help="Exclude SRM detector rows from execution/output.",
-    )
-    p_all.add_argument(
         "--skip-unimplemented",
         action="store_true",
         help="Skip deferred functions that raise NotImplementedError.",
@@ -175,7 +153,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    """Dispatch one CLI command to the corresponding `PipelineRunner` stage."""
+    """Dispatch one CLI command to the corresponding ``PipelineRunner`` stage."""
     args = _parser().parse_args()
     project_root = args.project_root.resolve()
     config = PipelineConfig.from_project_root(project_root)
@@ -206,11 +184,6 @@ def main() -> None:
             covers_manifest_path=_resolve_path(args.covers_manifest, project_root)
         )
         print(f"Splits JSON: {out}")
-    elif args.command == "build-training-jobs":
-        out = runner.build_srm_training_jobs(
-            splits_json_path=_resolve_path(args.splits_json, project_root)
-        )
-        print(f"Training jobs CSV: {out}")
     elif args.command == "run-embedding-stage":
         n = runner.run_embedding_stage(
             stego_manifest_path=_resolve_path(args.stego_manifest, project_root),
@@ -222,7 +195,6 @@ def main() -> None:
             stego_manifest_path=_resolve_path(args.stego_manifest, project_root),
             splits_json_path=_resolve_path(args.splits_json, project_root),
             execute=args.execute,
-            include_srm=not args.disable_srm,
             skip_unimplemented=args.skip_unimplemented,
         )
         print(f"Predictions CSV: {out}")
@@ -256,7 +228,6 @@ def main() -> None:
             covers_manifest_path=_resolve_path(args.covers_manifest, project_root),
             execute_embeddings=args.execute_embeddings,
             execute_detectors=args.execute_detectors,
-            include_srm=not args.disable_srm,
             skip_unimplemented=args.skip_unimplemented,
             quality_metrics_input=(
                 _resolve_path(args.quality_metrics_input, project_root)
@@ -268,7 +239,6 @@ def main() -> None:
         print(f"Payload manifest: {out['payload_manifest']}")
         print(f"Stego manifest: {out['stego_manifest']}")
         print(f"Splits JSON: {out['splits_json']}")
-        print(f"Training jobs CSV: {out['training_jobs']}")
         print(f"Embedding rows processed: {out['embedding_rows_processed']}")
         print(f"Predictions CSV: {out['predictions']}")
         print(f"Fold metrics CSV: {out['fold_metrics']}")

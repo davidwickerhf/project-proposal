@@ -3,19 +3,20 @@ from __future__ import annotations
 import pytest
 from PIL import Image
 
-from src.detection.srm import (
-    SRMModelArtifact,
-    SRMTrainingInput,
-    extract_srm_features,
-    score_srm_ec_model,
-    train_srm_ec_model,
-)
 from src.detection.statistical import (
-    block_dct_shift_score,
-    chi_square_score,
+    calibration_chi_square_score,
+    chi_square_dct_score,
+    chi_square_spatial_score,
     rs_analysis_score,
+    sample_pairs_score,
 )
-from src.embedding.dct import embed_dct_qim
+from src.detection.srnet import (
+    SRNetModelArtifact,
+    SRNetTrainingInput,
+    score_srnet_model,
+    train_srnet_model,
+)
+from src.embedding.dct import embed_dct_lsb_jpeg
 from src.embedding.encryption import (
     decrypt_payload_aes_256_cbc,
     encrypt_payload_aes_256_cbc,
@@ -38,30 +39,35 @@ from src.embedding.lsb import embed_lsb
         ),
         (
             embed_lsb,
-            (Image.new("RGB", (8, 8), color=(0, 0, 0)), b"abc", "low", 123),
-            "LSB embedding",
+            (Image.new("L", (8, 8), color=0), b"abc", 0.25),
+            "Sequential grayscale LSB embedding",
         ),
         (
-            embed_dct_qim,
-            (Image.new("RGB", (8, 8), color=(0, 0, 0)), b"abc", "low", 20.0),
-            "DCT-QIM embedding",
+            embed_dct_lsb_jpeg,
+            (b"jpeg-bytes", b"abc", 0.25),
+            "JPEG DCT-LSB embedding",
+        ),
+        (rs_analysis_score, (Image.new("L", (8, 8), color=0),), "RS analysis"),
+        (
+            chi_square_spatial_score,
+            (Image.new("L", (8, 8), color=0),),
+            "Spatial chi-square",
         ),
         (
-            extract_srm_features,
-            (Image.new("RGB", (8, 8), color=(0, 0, 0)),),
-            "SRM feature extraction",
+            sample_pairs_score,
+            (Image.new("L", (8, 8), color=0),),
+            "Sample Pairs",
         ),
-        (rs_analysis_score, (Image.new("RGB", (8, 8), color=(0, 0, 0)),), "RS analysis"),
-        (chi_square_score, (Image.new("RGB", (8, 8), color=(0, 0, 0)),), "Chi-square"),
+        (chi_square_dct_score, (b"jpeg-bytes",), "DCT chi-square"),
         (
-            block_dct_shift_score,
-            (Image.new("RGB", (8, 8), color=(0, 0, 0)),),
-            "Block-DCT shift test",
+            calibration_chi_square_score,
+            (b"jpeg-bytes",),
+            "Calibration chi-square",
         ),
         (
-            train_srm_ec_model,
+            train_srnet_model,
             (
-                SRMTrainingInput(
+                SRNetTrainingInput(
                     method="lsb",
                     fold=0,
                     x_train=[[0.1, 0.2]],
@@ -70,15 +76,15 @@ from src.embedding.lsb import embed_lsb
                     y_val=[1],
                 ),
             ),
-            r"SRM\+EC training",
+            "SRNet training",
         ),
         (
-            score_srm_ec_model,
+            score_srnet_model,
             (
-                SRMModelArtifact(method="lsb", fold=0, model_state=None, hyperparams={}),
+                SRNetModelArtifact(method="lsb", fold=0, model_state=None, hyperparams={}),
                 [[0.1, 0.2]],
             ),
-            r"SRM\+EC inference",
+            "SRNet inference",
         ),
     ],
 )

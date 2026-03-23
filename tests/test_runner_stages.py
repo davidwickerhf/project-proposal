@@ -8,7 +8,7 @@ import pytest
 from src.data.manifests import read_rows_csv, write_rows_csv
 from src.pipeline.config import PipelineConfig
 from src.pipeline.runner import PipelineRunner, _stable_iv
-from tests.helpers import COVER_FIELDNAMES, create_image, write_cover_manifest
+from tests.helpers import write_cover_manifest
 
 
 def test_standardize_covers_from_index_writes_outputs(project_root: Path, runner: PipelineRunner) -> None:
@@ -18,7 +18,11 @@ def test_standardize_covers_from_index_writes_outputs(project_root: Path, runner
     rows: list[dict[str, str]] = []
     for group_id in [1, 2]:
         for source in ["real", "ml_a", "ml_b"]:
-            raw_path = create_image(raw_root / f"{group_id}_{source}.jpg", size=(23, 17))
+            raw_path = raw_root / f"{group_id}_{source}.jpg"
+            raw_path.parent.mkdir(parents=True, exist_ok=True)
+            from PIL import Image
+
+            Image.new("RGB", (23, 17), color=(50, 100, 150)).save(raw_path)
             rows.append(
                 {
                     "group_id": str(group_id),
@@ -55,17 +59,21 @@ def test_standardize_covers_from_index_writes_outputs(project_root: Path, runner
     covers = read_rows_csv(out)
 
     assert len(covers) == 6
-    first_path = project_root / covers[0]["image_path"]
-    assert first_path.exists()
+    first_spatial = project_root / covers[0]["spatial_path"]
+    first_frequency = project_root / covers[0]["frequency_path"]
+    assert first_spatial.exists()
+    assert first_frequency.exists()
 
     from src.data.images import load_image
 
-    standardized = load_image(first_path)
+    standardized = load_image(first_spatial)
     assert standardized.size == (512, 512)
-    assert not Path(covers[0]["image_path"]).is_absolute()
+    assert standardized.mode == "L"
+    assert not Path(covers[0]["spatial_path"]).is_absolute()
+    assert not Path(covers[0]["frequency_path"]).is_absolute()
 
 
-def test_create_grouped_splits_and_training_jobs_locked_design(project_root: Path) -> None:
+def test_create_grouped_splits_locked_design(project_root: Path) -> None:
     cfg = PipelineConfig(project_root=project_root)
     local_runner = PipelineRunner(cfg)
 
@@ -84,16 +92,6 @@ def test_create_grouped_splits_and_training_jobs_locked_design(project_root: Pat
         assert len(fold["train_group_ids"]) == 350
         assert len(fold["val_group_ids"]) == 50
         assert len(fold["test_group_ids"]) == 100
-
-    jobs_csv = local_runner.build_srm_training_jobs(splits_json_path=splits_json)
-    jobs = read_rows_csv(jobs_csv)
-
-    assert len(jobs) == 10
-    assert {j["method"] for j in jobs} == {"lsb", "dct"}
-    assert {j["train_samples"] for j in jobs} == {"6300"}
-    assert {j["val_samples"] for j in jobs} == {"900"}
-    assert {j["test_samples"] for j in jobs} == {"1800"}
-    assert all(not Path(j["split_ref"]).is_absolute() for j in jobs)
 
 
 def test_build_payload_manifest_validates_group_count(project_root: Path, runner: PipelineRunner) -> None:
@@ -122,12 +120,14 @@ def test_embed_params_json_contract(project_root: Path) -> None:
 
     lsb_low = json.loads(runner._embed_params_json("lsb", "low"))
     assert lsb_low["method"] == "lsb"
-    assert lsb_low["k"] == 1
-    assert lsb_low["pixel_fraction"] == 0.25
+    assert lsb_low["bit_depth"] == 1
+    assert lsb_low["fill_rate"] == 0.25
+    assert lsb_low["scan_order"] == "row_major"
 
     dct_high = json.loads(runner._embed_params_json("dct", "high"))
-    assert dct_high["method"] == "dct_qim"
-    assert dct_high["coeff_fraction"] == 0.50
+    assert dct_high["method"] == "dct_lsb_jpeg"
+    assert dct_high["fill_rate"] == 0.75
+    assert dct_high["jpeg_quality"] == 95
 
     with pytest.raises(ValueError, match="Unknown method"):
         runner._embed_params_json("foo", "low")

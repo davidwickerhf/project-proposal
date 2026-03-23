@@ -16,7 +16,8 @@ COVER_FIELDNAMES = [
     "orig_id",
     "caption_id",
     "caption_text",
-    "image_path",
+    "spatial_path",
+    "frequency_path",
     "qc_pass",
     "qc_score",
     "seed",
@@ -49,7 +50,12 @@ def write_cover_manifest(path: Path, group_ids: Iterable[int]) -> Path:
                     "orig_id": f"orig-{group_id}-{source}",
                     "caption_id": f"cap-{group_id}",
                     "caption_text": f"caption {group_id}",
-                    "image_path": f"data/covers/{source}/g{group_id:04d}__src-{source}.png",
+                    "spatial_path": (
+                        f"data/covers/spatial/{source}/g{group_id:04d}__src-{source}.png"
+                    ),
+                    "frequency_path": (
+                        f"data/covers/frequency/{source}/g{group_id:04d}__src-{source}.jpg"
+                    ),
                     "qc_pass": "true",
                     "qc_score": "0.99",
                     "seed": "42",

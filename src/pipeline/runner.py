@@ -1,48 +1,48 @@
 from __future__ import annotations
 
-"""Stage orchestrator for the steganography experiment pipeline.
+"""Stage orchestrator for the final proposal-aligned experiment pipeline.
 
 `PipelineRunner` is the only layer that should handle file I/O for deferred
-algorithm components. Deferred embedding/encryption/detection functions are
-kept closed-loop (in-memory in/out), while this module:
-- reads/writes manifests,
+algorithm components. Deferred embedding, encryption, and detector functions
+stay closed-loop (in-memory in/out), while this module:
+- reads and writes manifests,
 - resolves relative paths,
-- materializes artifacts in canonical layout.
+- materializes artifacts in the canonical layout,
+- keeps the operational pipeline aligned with `proposal_updated_3.tex`.
 """
 
 import hashlib
 import json
+import random
 import secrets
 from pathlib import Path
-import random
-from typing import Callable
 
 from src.common.contracts import ENCRYPTION_STATES, METHODS, PAYLOAD_LEVELS
+from src.data.images import (
+    load_bytes,
+    load_image,
+    save_bytes,
+    save_png,
+    standardize_and_save_variants,
+)
 from src.data.manifests import (
     CoverRecord,
     PayloadRecord,
     StegoRecord,
-    TrainingJobRecord,
     read_rows_csv,
     unique_group_ids,
     write_dataclass_csv,
-    write_rows_csv,
     write_json,
-)
-from src.data.images import load_image, standardize_and_save
-from src.detection.srm import (
-    SRMModelArtifact,
-    SRMTrainingInput,
-    extract_srm_features,
-    score_srm_ec_model,
-    train_srm_ec_model,
+    write_rows_csv,
 )
 from src.detection.statistical import (
-    block_dct_shift_score,
-    chi_square_score,
+    calibration_chi_square_score,
+    chi_square_dct_score,
+    chi_square_spatial_score,
     rs_analysis_score,
+    sample_pairs_score,
 )
-from src.embedding.dct import embed_dct_qim
+from src.embedding.dct import embed_dct_lsb_jpeg
 from src.embedding.encryption import encrypt_payload_aes_256_cbc
 from src.embedding.lsb import embed_lsb
 from src.evaluation.metrics import (
@@ -62,7 +62,7 @@ def _stable_iv(group_id: int, payload_level: str) -> bytes:
 
 
 class PipelineRunner:
-    """Execute pipeline stages and keep all contracts aligned with README."""
+    """Execute pipeline stages for the final, proposal-locked experiment design."""
 
     def __init__(self, config: PipelineConfig) -> None:
         self.config = config
@@ -73,7 +73,7 @@ class PipelineRunner:
         self.paths.ensure_layout()
 
     def _resolve_manifest_path(self, value: str | Path) -> Path:
-        """Resolve relative manifest paths against project root for local file access."""
+        """Resolve relative manifest paths against project root for local access."""
         path = Path(value)
         return path if path.is_absolute() else (self.config.project_root / path)
 
@@ -83,30 +83,25 @@ class PipelineRunner:
         try:
             return str(path.relative_to(self.config.project_root))
         except ValueError:
-            # If a path is outside project root, keep absolute path as fallback.
             return str(path)
 
     def _load_folds(self, splits_json_path: Path) -> list[FoldSplit]:
         obj = json.loads(self._resolve_manifest_path(splits_json_path).read_text(encoding="utf-8"))
         return [FoldSplit(**fold) for fold in obj["folds"]]
 
-    def _detectors_for_method(self, method: str, include_srm: bool) -> list[str]:
+    def _detectors_for_method(self, method: str) -> list[str]:
         if method == "lsb":
-            detectors = ["rs", "chi_square"]
-        elif method == "dct":
-            detectors = ["block_dct_shift"]
-        else:
-            raise ValueError(f"Unknown method: {method}")
-        if include_srm:
-            detectors.insert(0, "srm_ec")
-        return detectors
+            return ["rs", "chi_square_spatial", "sample_pairs"]
+        if method == "dct":
+            return ["chi_square_dct", "calibration_chi_square"]
+        raise ValueError(f"Unknown method: {method}")
 
     def standardize_covers_from_index(
         self,
         input_index_csv: Path,
         output_manifest_path: Path | None = None,
     ) -> Path:
-        """Standardize raw cover images into canonical PNG storage.
+        """Standardize raw cover images into branch-specific grayscale storage.
 
         Required input columns:
         group_id, source, dataset, orig_id, caption_id, caption_text,
@@ -117,12 +112,14 @@ class PipelineRunner:
         for row in rows:
             group_id = int(row["group_id"])
             source = row["source"]
-            out_path = self.paths.cover_path(group_id, source)  # type: ignore[arg-type]
-            # Read raw image path from manifest, standardize to canonical cover format.
-            standardize_and_save(
+            spatial_path = self.paths.cover_path(group_id, source, "spatial")  # type: ignore[arg-type]
+            frequency_path = self.paths.cover_path(group_id, source, "frequency")  # type: ignore[arg-type]
+            standardize_and_save_variants(
                 input_path=self._resolve_manifest_path(row["raw_image_path"]),
-                output_path=out_path,
+                spatial_output_path=spatial_path,
+                frequency_output_path=frequency_path,
                 size=self.config.image_size,
+                jpeg_quality=self.config.jpeg_quality,
             )
             records.append(
                 CoverRecord(
@@ -132,14 +129,14 @@ class PipelineRunner:
                     orig_id=row["orig_id"],
                     caption_id=row["caption_id"],
                     caption_text=row["caption_text"],
-                    image_path=self._to_project_relative(out_path),
+                    spatial_path=self._to_project_relative(spatial_path),
+                    frequency_path=self._to_project_relative(frequency_path),
                     qc_pass=row["qc_pass"].lower() == "true",
                     qc_score=float(row["qc_score"]),
                     seed=int(row["seed"]),
                 )
             )
 
-        # Covers manifest is the source-of-truth for all downstream pairing.
         output_path = output_manifest_path or (self.paths.manifests_dir / "covers_master.csv")
         write_dataclass_csv(output_path, records)
         return output_path
@@ -150,10 +147,11 @@ class PipelineRunner:
         output_manifest_path: Path | None = None,
         write_payload_files: bool = False,
     ) -> Path:
-        """Generate payload manifest entries for all groups/levels/encryption states.
+        """Generate payload rows for all groups, payload levels, and encryption states.
 
-        When ``write_payload_files`` is True, payload binaries are also materialized.
-        Encryption branch intentionally calls the placeholder AES function.
+        Payload artifacts store deterministic pseudo-random streams sized for the
+        proposal's nominal spatial capacity. DCT-LSB rows consume prefixes of
+        those streams according to their own eligible-coefficient capacity.
         """
         cover_rows = read_rows_csv(covers_manifest_path)
         groups = unique_group_ids(cover_rows)
@@ -166,19 +164,18 @@ class PipelineRunner:
         records: list[PayloadRecord] = []
         for group_id in groups:
             for payload_level in PAYLOAD_LEVELS:
-                payload_bits = self.config.payload_bits_by_level[payload_level]
-                payload_bytes = self._generate_payload_bytes(payload_bits, rng)
+                payload_stream_bits = self.config.spatial_payload_bits(payload_level)
+                payload_bytes = self._generate_payload_bytes(payload_stream_bits, rng)
+                fill_rate = self.config.payload_fill_rates[payload_level]
                 for encryption in ENCRYPTION_STATES:
                     payload_path = self.paths.payload_path(group_id, payload_level, encryption)
                     iv = _stable_iv(group_id, payload_level)
 
                     if write_payload_files:
-                        # Optional artifact materialization for fully executable runs.
                         payload_path.parent.mkdir(parents=True, exist_ok=True)
                         if encryption == "plain":
                             payload_path.write_bytes(payload_bytes)
                         else:
-                            # Intentionally calls placeholder implementation.
                             key = secrets.token_bytes(32)
                             ciphertext = encrypt_payload_aes_256_cbc(payload_bytes, key=key, iv=iv)
                             payload_path.write_bytes(ciphertext)
@@ -189,7 +186,9 @@ class PipelineRunner:
                             payload_level=payload_level,
                             encryption=encryption,
                             payload_path=self._to_project_relative(payload_path),
-                            payload_bits=payload_bits,
+                            payload_stream_bits=payload_stream_bits,
+                            fill_rate=fill_rate,
+                            bit_depth=self.config.primary_lsb_bit_depth,
                             aes_iv=iv.hex(),
                             aes_key_id=self.config.aes_key_id,
                             seed=self.config.payload_seed,
@@ -206,11 +205,10 @@ class PipelineRunner:
         payload_manifest_path: Path,
         output_manifest_path: Path | None = None,
     ) -> Path:
-        """Enumerate all stego jobs from covers x methods x payloads x encryption."""
+        """Enumerate all main stego jobs from covers x methods x payloads x encryption."""
         cover_rows = read_rows_csv(covers_manifest_path)
         payload_rows = read_rows_csv(payload_manifest_path)
 
-        # Fast lookup by the natural composite key of payload artifacts.
         payload_index = {
             (int(row["group_id"]), row["payload_level"], row["encryption"]): row
             for row in payload_rows
@@ -220,8 +218,10 @@ class PipelineRunner:
         for cover in cover_rows:
             group_id = int(cover["group_id"])
             source = cover["source"]
-            cover_path = self._to_project_relative(cover["image_path"])
             for method in METHODS:
+                cover_path = (
+                    cover["spatial_path"] if method == "lsb" else cover["frequency_path"]
+                )
                 for payload_level in PAYLOAD_LEVELS:
                     for encryption in ENCRYPTION_STATES:
                         payload_row = payload_index[(group_id, payload_level, encryption)]
@@ -241,7 +241,7 @@ class PipelineRunner:
                                 method=method,
                                 payload_level=payload_level,
                                 encryption=encryption,
-                                cover_path=cover_path,
+                                cover_path=self._to_project_relative(cover_path),
                                 payload_path=payload_path,
                                 stego_path=self._to_project_relative(stego_path),
                                 embed_params=embed_params,
@@ -249,7 +249,6 @@ class PipelineRunner:
                             )
                         )
 
-        # This manifest drives the embedding execution stage.
         output_path = output_manifest_path or (self.paths.manifests_dir / "stego_manifest.csv")
         write_dataclass_csv(output_path, records)
         return output_path
@@ -276,40 +275,6 @@ class PipelineRunner:
         write_json(path, split_payload)
         return path
 
-    def build_srm_training_jobs(
-        self,
-        splits_json_path: Path,
-        output_manifest_path: Path | None = None,
-    ) -> Path:
-        """Build per-method SRM training job manifest from split definitions."""
-        splits_obj = json.loads(splits_json_path.read_text(encoding="utf-8"))
-        folds = [FoldSplit(**fold) for fold in splits_obj["folds"]]
-
-        records: list[TrainingJobRecord] = []
-        for fold in folds:
-            for method in METHODS:
-                train_groups = len(fold.train_group_ids)
-                val_groups = len(fold.val_group_ids)
-                test_groups = len(fold.test_group_ids)
-                records.append(
-                    TrainingJobRecord(
-                        fold=fold.fold,
-                        method=method,
-                        train_groups=train_groups,
-                        val_groups=val_groups,
-                        test_groups=test_groups,
-                        train_samples=train_groups * 3 * 6,
-                        val_samples=val_groups * 3 * 6,
-                        test_samples=test_groups * 3 * 6,
-                        split_ref=self._to_project_relative(splits_json_path),
-                    )
-                )
-
-        # 2 methods x 5 folds = 10 jobs in the locked design.
-        output_path = output_manifest_path or (self.paths.splits_dir / "srm_training_jobs.csv")
-        write_dataclass_csv(output_path, records)
-        return output_path
-
     def run_embedding_stage(
         self,
         stego_manifest_path: Path,
@@ -317,105 +282,37 @@ class PipelineRunner:
     ) -> int:
         """Create stego artifacts from manifest rows.
 
-        With execute=False this is a dry-run counter only.
+        With ``execute=False`` this is a dry-run counter only.
         """
         rows = read_rows_csv(stego_manifest_path)
         if not execute:
             return len(rows)
 
-        # This stage intentionally calls placeholder methods.
-        from src.data.images import save_png
-
         for row in rows:
-            # Runner handles file I/O; embedding functions stay closed-loop.
-            cover_image = load_image(self._resolve_manifest_path(row["cover_path"]))
             payload_bytes = self._resolve_manifest_path(row["payload_path"]).read_bytes()
+            params = json.loads(row["embed_params"])
             method = row["method"]
-            payload_level = row["payload_level"]
             if method == "lsb":
+                cover_image = load_image(self._resolve_manifest_path(row["cover_path"]))
                 stego = embed_lsb(
                     cover_image=cover_image,
                     payload_bytes=payload_bytes,
-                    payload_level=payload_level,
-                    prng_key=self.config.lsb_prng_key,
+                    fill_rate=float(params["fill_rate"]),
+                    bit_depth=int(params["bit_depth"]),
                 )
+                save_png(stego, self._resolve_manifest_path(row["stego_path"]))
             elif method == "dct":
-                stego = embed_dct_qim(
-                    cover_image=cover_image,
+                cover_jpeg_bytes = load_bytes(self._resolve_manifest_path(row["cover_path"]))
+                stego_bytes = embed_dct_lsb_jpeg(
+                    cover_jpeg_bytes=cover_jpeg_bytes,
                     payload_bytes=payload_bytes,
-                    payload_level=payload_level,
-                    delta=self.config.dct_delta,
+                    fill_rate=float(params["fill_rate"]),
+                    jpeg_quality=int(params["jpeg_quality"]),
                 )
+                save_bytes(stego_bytes, self._resolve_manifest_path(row["stego_path"]))
             else:
                 raise ValueError(f"Unknown method: {method}")
-            save_png(stego, self._resolve_manifest_path(row["stego_path"]))
         return len(rows)
-
-    def _train_srm_models(
-        self,
-        stego_manifest_path: Path,
-        splits_json_path: Path,
-    ) -> dict[tuple[int, str], SRMModelArtifact]:
-        """Train SRM+EC models for every fold x method combination.
-
-        Iterates train/val partitions, extracts SRM features from cover and
-        stego images, assembles ``SRMTrainingInput``, and delegates to the
-        deferred ``train_srm_ec_model`` function.
-
-        Returns a dict keyed by ``(fold_number, method)`` -> trained model.
-        """
-        stego_rows = read_rows_csv(stego_manifest_path)
-        folds = self._load_folds(splits_json_path)
-
-        models: dict[tuple[int, str], SRMModelArtifact] = {}
-        for fold in folds:
-            train_groups = set(fold.train_group_ids)
-            val_groups = set(fold.val_group_ids)
-
-            for method in METHODS:
-                method_rows = [r for r in stego_rows if r["method"] == method]
-
-                # Cache features per image path to avoid redundant extraction
-                # (same cover is the negative for multiple stego conditions).
-                feature_cache: dict[str, list[float]] = {}
-
-                def _get_features(image_path: str) -> list[float]:
-                    if image_path not in feature_cache:
-                        img = load_image(self._resolve_manifest_path(image_path))
-                        feature_cache[image_path] = extract_srm_features(img)
-                    return feature_cache[image_path]
-
-                x_train: list[list[float]] = []
-                y_train: list[int] = []
-                x_val: list[list[float]] = []
-                y_val: list[int] = []
-
-                for row in method_rows:
-                    gid = int(row["group_id"])
-                    if gid in train_groups:
-                        dst_x, dst_y = x_train, y_train
-                    elif gid in val_groups:
-                        dst_x, dst_y = x_val, y_val
-                    else:
-                        continue
-
-                    dst_x.append(_get_features(row["stego_path"]))
-                    dst_y.append(1)
-                    dst_x.append(_get_features(row["cover_path"]))
-                    dst_y.append(0)
-
-                training_input = SRMTrainingInput(
-                    method=method,
-                    fold=fold.fold,
-                    x_train=x_train,
-                    y_train=y_train,
-                    x_val=x_val,
-                    y_val=y_val,
-                    random_seed=self.config.embed_seed,
-                )
-                models[(fold.fold, method)] = train_srm_ec_model(training_input)
-
-        return models
 
     def run_detector_stage(
         self,
@@ -424,37 +321,15 @@ class PipelineRunner:
         output_path: Path | None = None,
         *,
         execute: bool = False,
-        include_srm: bool = True,
         skip_unimplemented: bool = False,
-        srm_score_provider: Callable[[dict[str, str]], float] | None = None,
     ) -> Path:
         """Run detector scoring on fold test partitions and write predictions CSV.
 
         Output schema:
         fold, detector, group_id, source, method, payload_level, encryption, label, score
-
-        Notes:
-        - Positives are stego rows (label=1).
-        - Negatives are matched cover rows per stego condition (label=0).
-        - With execute=False, score values are left empty as a dry-run plan.
-        - When ``execute`` and ``include_srm`` are both True and no external
-          ``srm_score_provider`` is given, SRM models are automatically trained
-          on train/val partitions before test-set scoring begins.
         """
         stego_rows = read_rows_csv(stego_manifest_path)
         folds = self._load_folds(splits_json_path)
-
-        # Auto-train SRM models when executing with SRM enabled and no
-        # external provider was supplied.
-        srm_models: dict[tuple[int, str], SRMModelArtifact] | None = None
-        if execute and include_srm and srm_score_provider is None:
-            try:
-                srm_models = self._train_srm_models(stego_manifest_path, splits_json_path)
-            except NotImplementedError:
-                if not skip_unimplemented:
-                    raise
-                # SRM feature extraction / training not implemented yet;
-                # individual srm_ec rows will be skipped in the loop below.
 
         pred_rows: list[dict[str, object]] = []
         for fold in folds:
@@ -464,11 +339,7 @@ class PipelineRunner:
                 if group_id not in test_groups:
                     continue
 
-                method = row["method"]
-                detectors = self._detectors_for_method(method, include_srm=include_srm)
-
-                for detector in detectors:
-                    # Positive row (stego image).
+                for detector in self._detectors_for_method(row["method"]):
                     pos_score = ""
                     if execute:
                         try:
@@ -476,9 +347,6 @@ class PipelineRunner:
                                 detector=detector,
                                 label=1,
                                 row=row,
-                                fold=fold.fold,
-                                srm_score_provider=srm_score_provider,
-                                srm_models=srm_models,
                             )
                         except NotImplementedError:
                             if skip_unimplemented:
@@ -491,7 +359,7 @@ class PipelineRunner:
                             "detector": detector,
                             "group_id": group_id,
                             "source": row["source"],
-                            "method": method,
+                            "method": row["method"],
                             "payload_level": row["payload_level"],
                             "encryption": row["encryption"],
                             "label": 1,
@@ -499,7 +367,6 @@ class PipelineRunner:
                         }
                     )
 
-                    # Matched negative row (cover image under same condition key).
                     neg_score = ""
                     if execute:
                         try:
@@ -507,13 +374,9 @@ class PipelineRunner:
                                 detector=detector,
                                 label=0,
                                 row=row,
-                                fold=fold.fold,
-                                srm_score_provider=srm_score_provider,
-                                srm_models=srm_models,
                             )
                         except NotImplementedError:
                             if skip_unimplemented:
-                                # Remove positive row written above to keep label balance for this detector.
                                 pred_rows.pop()
                                 continue
                             raise
@@ -524,7 +387,7 @@ class PipelineRunner:
                             "detector": detector,
                             "group_id": group_id,
                             "source": row["source"],
-                            "method": method,
+                            "method": row["method"],
                             "payload_level": row["payload_level"],
                             "encryption": row["encryption"],
                             "label": 0,
@@ -556,17 +419,8 @@ class PipelineRunner:
         metrics_dir: Path | None = None,
         quality_metrics_input: Path | None = None,
     ) -> dict[str, Path]:
-        """Compute fold/condition/source metrics from detector prediction rows.
-
-        This stage computes:
-        - fold_metrics.csv
-        - condition_metrics.csv
-        - source_contrasts.csv
-        - pooled_summary.csv
-        - quality_metrics.csv (copied from input, or empty scaffold file)
-        """
+        """Compute fold/condition/source metrics from detector prediction rows."""
         rows = read_rows_csv(predictions_path)
-        # Keep only rows with numeric scores for metric calculations.
         scored_rows = [r for r in rows if try_parse_score(r.get("score", "")) is not None]
 
         out_dir = metrics_dir or self.paths.metrics_dir
@@ -645,37 +499,21 @@ class PipelineRunner:
             fieldnames=["detector", "source", "roc_auc_mean", "roc_auc_std", "n_folds"],
         )
 
+        quality_fieldnames = [
+            "group_id",
+            "source",
+            "method",
+            "payload_level",
+            "encryption",
+            "psnr",
+            "ssim",
+            "fsim",
+        ]
         if quality_metrics_input is not None:
             in_path = self._resolve_manifest_path(quality_metrics_input)
-            write_rows_csv(
-                quality_path,
-                read_rows_csv(in_path),
-                fieldnames=[
-                    "group_id",
-                    "source",
-                    "method",
-                    "payload_level",
-                    "encryption",
-                    "psnr",
-                    "ssim",
-                    "fsim",
-                ],
-            )
+            write_rows_csv(quality_path, read_rows_csv(in_path), fieldnames=quality_fieldnames)
         else:
-            write_rows_csv(
-                quality_path,
-                [],
-                fieldnames=[
-                    "group_id",
-                    "source",
-                    "method",
-                    "payload_level",
-                    "encryption",
-                    "psnr",
-                    "ssim",
-                    "fsim",
-                ],
-            )
+            write_rows_csv(quality_path, [], fieldnames=quality_fieldnames)
 
         return {
             "fold_metrics": fold_path,
@@ -706,23 +544,11 @@ class PipelineRunner:
         covers_manifest_path: Path,
         execute_embeddings: bool = False,
         execute_detectors: bool = False,
-        include_srm: bool = True,
         skip_unimplemented: bool = False,
         quality_metrics_input: Path | None = None,
         generate_figures: bool = False,
     ) -> dict[str, Path | int]:
-        """Run all non-deferred pipeline stages in sequence.
-
-        This orchestration covers:
-        - payload manifest generation
-        - stego manifest generation
-        - grouped split generation
-        - SRM training job expansion
-        - embedding stage execution/dry-run
-        - detector stage execution/dry-run
-        - metrics aggregation
-        - optional figure generation
-        """
+        """Run all non-deferred mainline pipeline stages in sequence."""
         self.init_layout()
 
         resolved_covers = self._resolve_manifest_path(covers_manifest_path)
@@ -735,7 +561,6 @@ class PipelineRunner:
             payload_manifest_path=payload_manifest,
         )
         splits_json = self.create_grouped_splits(covers_manifest_path=resolved_covers)
-        training_jobs = self.build_srm_training_jobs(splits_json_path=splits_json)
         embedding_rows = self.run_embedding_stage(
             stego_manifest_path=stego_manifest,
             execute=execute_embeddings,
@@ -744,7 +569,6 @@ class PipelineRunner:
             stego_manifest_path=stego_manifest,
             splits_json_path=splits_json,
             execute=execute_detectors,
-            include_srm=include_srm,
             skip_unimplemented=skip_unimplemented,
         )
         metrics_outputs = self.compute_metrics_from_predictions(
@@ -756,7 +580,6 @@ class PipelineRunner:
             "payload_manifest": payload_manifest,
             "stego_manifest": stego_manifest,
             "splits_json": splits_json,
-            "training_jobs": training_jobs,
             "predictions": predictions,
             "embedding_rows_processed": embedding_rows,
         }
@@ -773,27 +596,26 @@ class PipelineRunner:
         return bytes(rng.getrandbits(8) for _ in range(n_bytes))
 
     def _embed_params_json(self, method: str, payload_level: str) -> str:
-        """Return serialized embedding hyperparameters stored in stego manifest."""
+        """Return serialized embedding parameters stored in the stego manifest."""
+        fill_rate = self.config.payload_fill_rates[payload_level]
         if method == "lsb":
-            if payload_level in {"low", "medium"}:
-                k = 1
-                pixel_fraction = 0.25 if payload_level == "low" else 0.50
-            else:
-                k = 2
-                pixel_fraction = 0.50
             params = {
                 "method": "lsb",
-                "k": k,
-                "pixel_fraction": pixel_fraction,
-                "prng_key": self.config.lsb_prng_key,
+                "fill_rate": fill_rate,
+                "bit_depth": self.config.primary_lsb_bit_depth,
+                "spatial_bpp": fill_rate * self.config.primary_lsb_bit_depth,
+                "scan_order": "row_major",
+                "reference": "fridrich2001lsb",
             }
         elif method == "dct":
-            coeff_fraction = {"low": 0.10, "medium": 0.25, "high": 0.50}[payload_level]
             params = {
-                "method": "dct_qim",
-                "delta": self.config.dct_delta,
-                "coeff_fraction": coeff_fraction,
-                "zigzag_range": [10, 54],
+                "method": "dct_lsb_jpeg",
+                "fill_rate": fill_rate,
+                "jpeg_quality": self.config.jpeg_quality,
+                "coefficient_rule": "nonzero_ac_only",
+                "skip_dc": True,
+                "scan_order": "row_major_blocks",
+                "reference": "westfeld1999chi;fridrich2003calib",
             }
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -805,35 +627,22 @@ class PipelineRunner:
         detector: str,
         label: int,
         row: dict[str, str],
-        fold: int,
-        srm_score_provider: Callable[[dict[str, str]], float] | None,
-        srm_models: dict[tuple[int, str], SRMModelArtifact] | None = None,
     ) -> float:
-        """Score one detector on either stego (label=1) or cover (label=0) image."""
+        """Score one detector on either stego (label=1) or cover (label=0)."""
         image_path_key = "stego_path" if label == 1 else "cover_path"
-        image = load_image(self._resolve_manifest_path(row[image_path_key]))
+        path = self._resolve_manifest_path(row[image_path_key])
 
         if detector == "rs":
-            return rs_analysis_score(image)
-        if detector == "chi_square":
-            return chi_square_score(image)
-        if detector == "block_dct_shift":
-            return block_dct_shift_score(image)
-        if detector == "srm_ec":
-            # Prefer an externally supplied scoring callback when available.
-            if srm_score_provider is not None:
-                return float(srm_score_provider(row))
-            # Fall back to auto-trained models.
-            if srm_models is not None:
-                model = srm_models.get((fold, row["method"]))
-                if model is None:
-                    raise RuntimeError(
-                        f"No SRM model trained for fold={fold}, method={row['method']}"
-                    )
-                features = extract_srm_features(image)
-                scores = score_srm_ec_model(model, [features])
-                return scores[0]
-            raise NotImplementedError(
-                "SRM score provider is not wired yet. Supply srm_score_provider or disable SRM."
+            return rs_analysis_score(load_image(path))
+        if detector == "chi_square_spatial":
+            return chi_square_spatial_score(load_image(path))
+        if detector == "sample_pairs":
+            return sample_pairs_score(load_image(path))
+        if detector == "chi_square_dct":
+            return chi_square_dct_score(load_bytes(path))
+        if detector == "calibration_chi_square":
+            return calibration_chi_square_score(
+                load_bytes(path),
+                jpeg_quality=self.config.jpeg_quality,
             )
         raise ValueError(f"Unknown detector: {detector}")

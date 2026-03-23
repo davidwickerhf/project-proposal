@@ -15,7 +15,8 @@ class CoverRecord:
     orig_id: str
     caption_id: str
     caption_text: str
-    image_path: str
+    spatial_path: str
+    frequency_path: str
     qc_pass: bool
     qc_score: float
     seed: int
@@ -27,7 +28,9 @@ class PayloadRecord:
     payload_level: str
     encryption: str
     payload_path: str
-    payload_bits: int
+    payload_stream_bits: int
+    fill_rate: float
+    bit_depth: int
     aes_iv: str
     aes_key_id: str
     seed: int
@@ -48,15 +51,13 @@ class StegoRecord:
 
 
 @dataclass(frozen=True)
-class TrainingJobRecord:
+class ExtensionJobRecord:
     fold: int
     method: str
+    detector: str
     train_groups: int
     val_groups: int
     test_groups: int
-    train_samples: int
-    val_samples: int
-    test_samples: int
     split_ref: str
 
 

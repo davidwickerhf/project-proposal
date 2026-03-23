@@ -28,6 +28,8 @@ def test_build_payload_manifest_cardinality_and_fields(
     encrypted_rows = [r for r in rows if r["encryption"] == "encrypted"]
     assert all(r["aes_key_id"] == "aes256cbc-v1" for r in encrypted_rows)
     assert all(len(r["aes_iv"]) == 32 for r in rows)
+    assert {r["fill_rate"] for r in rows} == {"0.25", "0.5", "0.75"}
+    assert {r["bit_depth"] for r in rows} == {"1"}
 
     sample = rows[0]
     assert sample["payload_path"].endswith(".bin")
@@ -72,6 +74,8 @@ def test_build_stego_manifest_cardinality_and_condition_completeness(
     assert {r["method"] for r in rows} == {"lsb", "dct"}
     assert {r["payload_level"] for r in rows} == {"low", "medium", "high"}
     assert {r["encryption"] for r in rows} == {"plain", "encrypted"}
+    assert any(r["cover_path"].endswith(".png") for r in rows if r["method"] == "lsb")
+    assert any(r["cover_path"].endswith(".jpg") for r in rows if r["method"] == "dct")
     assert all(not Path(r["cover_path"]).is_absolute() for r in rows)
     assert all(not Path(r["payload_path"]).is_absolute() for r in rows)
     assert all(not Path(r["stego_path"]).is_absolute() for r in rows)
@@ -91,7 +95,7 @@ def test_run_embedding_stage_dry_run_counts_rows(project_root: Path, small_runne
                 "cover_path": "/tmp/cover.png",
                 "payload_path": "/tmp/payload.bin",
                 "stego_path": "/tmp/stego.png",
-                "embed_params": "{}",
+                "embed_params": "{\"bit_depth\": 1, \"fill_rate\": 0.25}",
                 "seed": "42",
             },
             {
@@ -100,10 +104,10 @@ def test_run_embedding_stage_dry_run_counts_rows(project_root: Path, small_runne
                 "method": "dct",
                 "payload_level": "high",
                 "encryption": "encrypted",
-                "cover_path": "/tmp/cover2.png",
+                "cover_path": "/tmp/cover2.jpg",
                 "payload_path": "/tmp/payload2.bin",
-                "stego_path": "/tmp/stego2.png",
-                "embed_params": "{}",
+                "stego_path": "/tmp/stego2.jpg",
+                "embed_params": "{\"fill_rate\": 0.75, \"jpeg_quality\": 95}",
                 "seed": "42",
             },
         ],
@@ -133,14 +137,14 @@ def test_run_embedding_stage_execute_raises_on_placeholder(project_root: Path, s
                 "cover_path": str(cover),
                 "payload_path": str(payload),
                 "stego_path": str(project_root / "out.png"),
-                "embed_params": "{}",
+                "embed_params": "{\"bit_depth\": 1, \"fill_rate\": 0.25}",
                 "seed": "42",
             }
         ],
         fieldnames=STEGO_FIELDNAMES,
     )
 
-    with pytest.raises(NotImplementedError, match="LSB embedding"):
+    with pytest.raises(NotImplementedError, match="Sequential grayscale LSB embedding"):
         small_runner.run_embedding_stage(stego_manifest_path=stego_manifest, execute=True)
 
 

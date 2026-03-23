@@ -1,41 +1,23 @@
 # `src/detection` Guide
 
-`detection/` contains trained and statistical detector interfaces.
+`detection/` now mirrors the final proposal’s detector plan.
 
-## Files
+## Primary Detectors
 
-- `srm.py`
-  - `SRMTrainingInput` (in-memory train/val payload)
-  - `SRMModelArtifact` (in-memory trained model payload)
-  - `extract_srm_features(image) -> list[float]`
-  - `train_srm_ec_model(training_input) -> SRMModelArtifact`
-  - `score_srm_ec_model(model, x_samples) -> list[float]`
-- `statistical.py`
-  - `rs_analysis_score(image: PIL.Image.Image) -> float`
-  - `chi_square_score(image: PIL.Image.Image) -> float`
-  - `block_dct_shift_score(image: PIL.Image.Image) -> float`
+- `rs_analysis_score(image)`
+- `chi_square_spatial_score(image)`
+- `sample_pairs_score(image)`
+- `chi_square_dct_score(jpeg_bytes)`
+- `calibration_chi_square_score(jpeg_bytes, jpeg_quality=95)`
 
-Closed-loop contract (all deferred detection functions):
-- Inputs are in-memory artifacts only (feature matrices, labels, model object, images).
-- Outputs are scores/model artifacts only.
-- No direct file reads/writes inside detectors.
-- Pipeline/orchestrator layers own all disk I/O.
+All five are training-free and belong to the mainline experiment.
 
-## Detector Policy
+## Optional Extension
 
-- Confirmatory:
-  - SRM+EC (trained)
-  - RS (LSB)
-  - Block-DCT shift (DCT)
-- Sensitivity-only:
-  - chi-square (LSB)
+- `srnet.py`
+  - `SRNetTrainingInput`
+  - `SRNetModelArtifact`
+  - `train_srnet_model(...)`
+  - `score_srnet_model(...)`
 
-## Training Scope
-
-- SRM is trained per method (`lsb`, `dct`) and per fold.
-- Total expected SRM runs for full experiment: `2 methods x 5 folds = 10`.
-
-## Output Expectation
-
-All detector outputs should be exportable into prediction tables with:
-- `fold`, `detector`, `group_id`, `source`, `method`, `payload_level`, `encryption`, `label`, `score`
+SRNet is not part of the default pipeline. It exists only for the proposal’s time-permitting extension.

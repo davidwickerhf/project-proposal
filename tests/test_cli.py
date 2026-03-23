@@ -26,51 +26,10 @@ def test_cli_init_layout(monkeypatch, capsys, tmp_path: Path) -> None:
     out = capsys.readouterr().out
 
     assert "Layout initialized" in out
-    assert (tmp_path / "data" / "covers" / "real").is_dir()
+    assert (tmp_path / "data" / "covers" / "spatial" / "real").is_dir()
+    assert (tmp_path / "data" / "covers" / "frequency" / "real").is_dir()
     assert (tmp_path / "results" / "metrics").is_dir()
     assert (tmp_path / "results" / "figures").is_dir()
-
-
-def test_cli_build_training_jobs(monkeypatch, capsys, tmp_path: Path) -> None:
-    splits_json = tmp_path / "results" / "splits" / "splits_grouped5fold.json"
-    splits_json.parent.mkdir(parents=True, exist_ok=True)
-
-    folds = []
-    for i in range(5):
-        base = i * 100
-        test = list(range(base + 1, base + 101))
-        val = list(range(401, 451))
-        train = [g for g in range(1, 501) if g not in set(test) and g not in set(val)]
-        folds.append(
-            {
-                "fold": i,
-                "train_group_ids": train,
-                "val_group_ids": val,
-                "test_group_ids": test,
-            }
-        )
-    splits_json.write_text(
-        json.dumps({"protocol": "grouped-5fold", "group_unit": "group_id", "folds": folds}),
-        encoding="utf-8",
-    )
-
-    monkeypatch.setattr(
-        "sys.argv",
-        [
-            "prog",
-            "--project-root",
-            str(tmp_path),
-            "build-training-jobs",
-            "--splits-json",
-            "results/splits/splits_grouped5fold.json",
-        ],
-    )
-    main()
-    out = capsys.readouterr().out
-
-    assert "Training jobs CSV" in out
-    jobs_path = tmp_path / "results" / "splits" / "srm_training_jobs.csv"
-    assert jobs_path.exists()
 
 
 def test_cli_run_embedding_stage_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
@@ -147,7 +106,7 @@ def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
                 "method": "lsb",
                 "payload_level": "low",
                 "encryption": "plain",
-                "cover_path": "data/covers/real/g0001__src-real.png",
+                "cover_path": "data/covers/spatial/real/g0001__src-real.png",
                 "payload_path": "data/payloads/plain/low/g0001__p-low__e-plain.bin",
                 "stego_path": "data/stego/lsb/low/plain/real/g0001__src-real__m-lsb__p-low__e-plain.png",
                 "embed_params": "{}",
@@ -188,7 +147,6 @@ def test_cli_run_detectors_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
             "data/manifests/stego_manifest.csv",
             "--splits-json",
             "results/splits/splits_grouped5fold.json",
-            "--disable-srm",
         ],
     )
     main()
@@ -363,7 +321,6 @@ def test_cli_run_all_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
             "run-all",
             "--covers-manifest",
             "data/manifests/covers_master.csv",
-            "--disable-srm",
         ],
     )
     main()
@@ -373,6 +330,5 @@ def test_cli_run_all_dry_run(monkeypatch, capsys, tmp_path: Path) -> None:
     assert (tmp_path / "data" / "manifests" / "payload_manifest.csv").exists()
     assert (tmp_path / "data" / "manifests" / "stego_manifest.csv").exists()
     assert (tmp_path / "results" / "splits" / "splits_grouped5fold.json").exists()
-    assert (tmp_path / "results" / "splits" / "srm_training_jobs.csv").exists()
     assert (tmp_path / "results" / "predictions" / "predictions.csv").exists()
     assert (tmp_path / "results" / "metrics" / "fold_metrics.csv").exists()
